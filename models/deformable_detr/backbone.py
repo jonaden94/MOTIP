@@ -99,12 +99,16 @@ class Backbone(BackboneBase):
     def __init__(self, name: str,
                  train_backbone: bool,
                  return_interm_layers: bool,
-                 dilation: bool):
+                 dilation: bool,
+                 weights_path: str):
         norm_layer = FrozenBatchNorm2d
         if name == "resnet50":
             backbone = getattr(torchvision.models, name)(
                 replace_stride_with_dilation=[False, False, dilation],
-                weights=ResNet50_Weights.IMAGENET1K_V2 if is_main_process() else None, norm_layer=norm_layer)
+                weights=None, norm_layer=norm_layer)
+            if weights_path is not None and is_main_process():
+                state_dict = torch.load(weights_path)
+                backbone.load_state_dict(state_dict)
         else:
             raise NotImplementedError(f"Do not support backbone name {name}.")
         assert name not in ('resnet18', 'resnet34'), "number of channels are hard coded"
@@ -137,6 +141,6 @@ def build_backbone(args):
     position_embedding = build_position_encoding(args)
     train_backbone = args.lr_backbone > 0
     return_interm_layers = args.masks or (args.num_feature_levels > 1)
-    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation)
+    backbone = Backbone(args.backbone, train_backbone, return_interm_layers, args.dilation, args.backbone_weights_imagenet_path)
     model = Joiner(backbone, position_embedding)
     return model

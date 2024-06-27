@@ -14,12 +14,13 @@ GIT_VERSION:              # you should input the git version here, if you are us
 # Datasets:
 DATASETS: [DanceTrack]    # for joint training, there may be multiple datasets, like: [CrowdHuman, MOT17]
 DATASET_SPLITS: [train]   # and corresponding splits, like: [train, val]
+DATASET_SEQMAP_NAMES: [train_seqmap.txt]
 DATA_ROOT: ./datasets/    # datasets root
-# Sampling settings:
-SAMPLE_STEPS: [0]
-SAMPLE_LENGTHS: [40]
-SAMPLE_MODES: [random_interval]
-SAMPLE_INTERVALS: [4]
+# Sampling settings: (all are lists of same length that determine how frames are sampled for training)
+SAMPLE_STEPS: [0] # list of epoch numbers (in descending order). the corresponding values from SAMPLE_LENGTHS, SAMPLE_MODES and SAMPLE_INTERVALS are then taken when specific epoch is reached
+SAMPLE_LENGTHS: [40] # number of consecutive frames per iteration
+SAMPLE_MODES: [random_interval] # I guess this is for random sampling
+SAMPLE_INTERVALS: [4] # sample every nth frame. In the paper it says that the sampling interval ranges randomly from 1 to 4.
 # Data augmentation setting:
 AUG_RESIZE_SCALES: [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
 AUG_MAX_SIZE: 1333
@@ -43,6 +44,7 @@ SEQ_NUM_HEADS: 8
 # Backbone:
 BACKBONE: resnet50
 DILATION: False
+WEIGHTS_IMAGENET_PATH: /home/nibjohen/repos/MOTIP/pretrains/resnet50-11ad3fa6.pth
 # About DETR-Framework
 DETR_NUM_QUERIES: 300
 DETR_NUM_FEATURE_LEVELS: 4
@@ -90,7 +92,7 @@ CLIP_MAX_NORM: 0.1
 SCHEDULER_TYPE: MultiStep
 SCHEDULER_MILESTONES: [8, 12]
 SCHEDULER_GAMMA: 0.1
-BATCH_SIZE: 1
+BATCH_SIZE: 2
 ACCUMULATE_STEPS: 2
 RESUME_MODEL:
 RESUME_OPTIMIZER: True

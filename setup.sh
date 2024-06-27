@@ -10,7 +10,7 @@ conda install pytorch==2.2.0 torchvision==0.17.0 torchaudio==2.2.0 pytorch-cuda=
 
 # Other dependencies:
 conda install matplotlib pyyaml scipy tqdm tensorboard seaborn scikit-learn pandas -y
-pip install opencv-python einops wandb pycocotools timm
+pip install opencv-python einops wandb pycocotools timm jupyter
 
 # # Compile the Deformable Attention:
 # cd models/ops/

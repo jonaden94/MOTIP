@@ -37,19 +37,19 @@ class MOTDataset(Dataset):
         self.sample_modes = config["SAMPLE_MODES"]
         self.sample_intervals = config["SAMPLE_INTERVALS"]
         steps_len = len(self.sample_steps)
-        self.sample_lengths = self.sample_lengths + self.sample_lengths[-1:] * (steps_len - len(self.sample_lengths))
-        self.sample_modes = self.sample_modes + self.sample_modes[-1:] * (steps_len - len(self.sample_modes))
+        self.sample_lengths = self.sample_lengths + self.sample_lengths[-1:] * (steps_len - len(self.sample_lengths)) # dunno what this is supposed to do. It does nothing for length 1 lists
+        self.sample_modes = self.sample_modes + self.sample_modes[-1:] * (steps_len - len(self.sample_modes)) # dunno what this is supposed to do. It does nothing for length 1 lists
         self.sample_intervals = self.sample_intervals \
-            + self.sample_intervals[-1:] * (steps_len - len(self.sample_intervals))
+            + self.sample_intervals[-1:] * (steps_len - len(self.sample_intervals)) # dunno what this is supposed to do. It does nothing for length 1 lists
         assert len(self.sample_steps) == len(self.sample_lengths) \
                == len(self.sample_modes) == len(self.sample_intervals), f"Sampling setting varies in length."
         # Current setting:
         self.sample_length = None
         self.sample_mode = None
         self.sample_interval = None
-        # Dataset structures:
+        # Dataset structures: three keys: dataset, split and seqs. seqs itself is a dict that has all sequence names with corresponding images_dir, image_names, max_frames and gt_path
         self.datasets = [
-            self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_])
+            self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_], seqmap_name=config["DATASET_SEQMAP_NAMES"][_])
             for _ in range(len(config["DATASETS"]))
         ]
         if "DATASET_WEIGHTS" in config:
@@ -90,12 +90,19 @@ class MOTDataset(Dataset):
             "infos": infos
         }
 
-    def get_dataset_structure(self, dataset: str, split: str):
+    def get_dataset_structure(self, dataset: str, split: str, seqmap_name: str):
         dataset_dir = os.path.join(self.data_root, dataset)
         structure = {"dataset": dataset, "split": split}
         if dataset == "DanceTrack" or dataset == "SportsMOT":
             split_dir = os.path.join(dataset_dir, split)
             seq_names = os.listdir(split_dir)
+
+            if seqmap_name is not None:
+                seqmap_path = os.path.join(self.data_root, dataset, seqmap_name)
+                with open(seqmap_path, 'r') as f:
+                    seqmap = f.read().split('\n')[1:]
+                seq_names = [seq_name for seq_name in seq_names if seq_name in seqmap]
+            
             structure["seqs"] = {
                 seq: {
                     "images_dir": os.path.join(split_dir, seq, "img1"),
@@ -215,8 +222,8 @@ class MOTDataset(Dataset):
                                 (dataset["dataset"], dataset["split"], seq, 0)
                             )
                 else:                                       # real video:
-                    f_min = int(min(self.infos[dataset["dataset"]][dataset["split"]][seq].keys()))
-                    f_max = int(max(self.infos[dataset["dataset"]][dataset["split"]][seq].keys()))
+                    f_min = int(min(self.infos[dataset["dataset"]][dataset["split"]][seq].keys())) # minimum frame number of a sequence
+                    f_max = int(max(self.infos[dataset["dataset"]][dataset["split"]][seq].keys())) # maximum frame number of a sequence
                     for f in range(f_min, f_max - (self.sample_length - 1) + 1):
                         if all([len(self.infos[dataset["dataset"]][dataset["split"]][seq][f + _]["gts"]) > 0
                                 for _ in range(self.sample_length)]):   # make sure at least a legal seq with gts:

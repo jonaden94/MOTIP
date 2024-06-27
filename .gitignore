@@ -6,3 +6,8 @@
 # Python
 *.egg-info/
 __pycache__/
+
+# folders
+datasets
+pretrains
+outputs

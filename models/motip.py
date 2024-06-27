@@ -31,6 +31,7 @@ class MOTIP(nn.Module):
         self.backbone_type = config["BACKBONE"]
         self.lr_backbone = config["LR"] * config["LR_BACKBONE_SCALE"]
         self.backbone_dilation = config["DILATION"]
+        self.backbone_weights_imagenet_path = config["WEIGHTS_IMAGENET_PATH"]
         # DETR settings:
         self.detr_num_queries = config["DETR_NUM_QUERIES"]
         self.detr_num_feature_levels = config["DETR_NUM_FEATURE_LEVELS"]
@@ -69,6 +70,7 @@ class MOTIP(nn.Module):
         detr_args.two_stage = self.detr_two_stage
         detr_args.hidden_dim = self.detr_hidden_dim
         detr_args.backbone = self.backbone_type
+        detr_args.backbone_weights_imagenet_path = self.backbone_weights_imagenet_path
         detr_args.lr_backbone = self.lr_backbone
         detr_args.dilation = self.backbone_dilation
         detr_args.masks = self.detr_masks
