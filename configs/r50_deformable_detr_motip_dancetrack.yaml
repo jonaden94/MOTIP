@@ -9,7 +9,7 @@ DEVICE: cuda
 AVAILABLE_GPUS: 0,1,2,3,4,5,6,7
 
 # Git version:
-GIT_VERSION:              # you should input the git version here, if you are using wandb to log your experiments.
+GIT_VERSION: 2.39.3              # you should input the git version here, if you are using wandb to log your experiments.
 
 # Datasets:
 DATASETS: [DanceTrack]    # for joint training, there may be multiple datasets, like: [CrowdHuman, MOT17]
@@ -44,7 +44,7 @@ SEQ_NUM_HEADS: 8
 # Backbone:
 BACKBONE: resnet50
 DILATION: False
-WEIGHTS_IMAGENET_PATH: /home/nibjohen/repos/MOTIP/pretrains/resnet50-11ad3fa6.pth
+WEIGHTS_IMAGENET_PATH: ./pretrains/resnet50-11ad3fa6.pth
 # About DETR-Framework
 DETR_NUM_QUERIES: 300
 DETR_NUM_FEATURE_LEVELS: 4
@@ -92,7 +92,7 @@ CLIP_MAX_NORM: 0.1
 SCHEDULER_TYPE: MultiStep
 SCHEDULER_MILESTONES: [8, 12]
 SCHEDULER_GAMMA: 0.1
-BATCH_SIZE: 2
+BATCH_SIZE: 1
 ACCUMULATE_STEPS: 2
 RESUME_MODEL:
 RESUME_OPTIMIZER: True
@@ -106,13 +106,13 @@ INFERENCE_DATASET: DanceTrack
 INFERENCE_SPLIT: val
 INFERENCE_CONFIG_PATH:          # mostly, you don't need to set this parameter. See submit_engine.py L34 for more details.
 INFERENCE_GROUP:
-INFERENCE_MAX_SIZE: 1333
+INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
 INFERENCE_ENSEMBLE: 0
 # Thresholds:
 ID_THRESH: 0.2
-DET_THRESH: 0.3
-NEWBORN_THRESH: 0.6
-AREA_THRESH: 100
+DET_THRESH: 0.3 # only consider detections whose confidence exceeds this threshold
+NEWBORN_THRESH: 0.6 # only consider detections whose confidence exceeds this threshold for newborn objects (stricter than DET_THRESH)
+AREA_THRESH: 100 # only consider detections whose area exceeds this threshold
 
 # Outputs:
 OUTPUTS_DIR:
@@ -122,8 +122,8 @@ USE_TENSORBOARD: True
 USE_WANDB: True
 PROJECT_NAME: MOTIP
 EXP_NAME: r50_deformable_detr_motip_dancetrack
-EXP_GROUP: default
-EXP_OWNER: hellorpg
+EXP_GROUP: ~
+EXP_OWNER: ~
 
 # Settings which are used to reduce the memory usage of DETR criterion.
 # Too many objects (such as CrowdHuman) may cause OOM error.

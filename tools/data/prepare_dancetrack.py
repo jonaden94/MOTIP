@@ -35,7 +35,7 @@ def unzip_files(source_dir, destination_dir):
         os.rmdir(dir_path)
 
 # Define the source and destination directories
-base_dir = '/home/nibjohen/scratch_emmy_project/dancetrack'
+base_dir = '/user/henrich1/u12041/scratch/scratch_mdc_ssd_project/dancetrack'
 source_directory = os.path.join(base_dir, 'zip')
 destination_directory = os.path.join(base_dir, 'data')
 

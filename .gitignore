@@ -5,9 +5,11 @@
 
 # Python
 *.egg-info/
+*.egg
 __pycache__/
 
 # folders
 datasets
 pretrains
 outputs
+models/ops/build
