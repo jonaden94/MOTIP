@@ -9,6 +9,7 @@ from configs.utils import update_config, load_super_config
 from train_engine import train
 from eval_engine import evaluate
 from submit_engine import submit
+from video_infer_engine import video_info
 
 
 def parse_option():
@@ -106,11 +107,14 @@ def parse_option():
     parser.add_argument("--newborn-thresh", type=float)
     parser.add_argument("--area-thresh", type=int)
     parser.add_argument("--detr-cls-loss-coef", type=float)
+    
+    # video infer
+    parser.add_argument("--video-path", type=str, default='')
 
     return parser.parse_args()
 
 
-def main(config: dict):
+def main(config: dict, video_path=None):
     """
     Main function.
 
@@ -139,6 +143,8 @@ def main(config: dict):
         log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"],
                                config["INFERENCE_GROUP"] if config["INFERENCE_GROUP"] is not None else "default",
                                config["INFERENCE_SPLIT"])
+    elif config["MODE"] == "video":
+        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"])
     else:
         raise NotImplementedError(f"Do not support running mode '{config['MODE']}' yet.")
 
@@ -168,6 +174,11 @@ def main(config: dict):
         evaluate(config=config, logger=logger)
     elif config["MODE"] == "submit":
         submit(config=config, logger=logger)
+    elif config["MODE"] == "video":
+        if video_path is not None:
+            video_info(video_path, config=config, logger=logger)
+        else:
+            print('Supply path to video file!')
     return
 
 
@@ -181,4 +192,4 @@ if __name__ == '__main__':
         cfg = load_super_config(cfg, cfg["SUPER_CONFIG_PATH"])
 
     # Then, update configs by runtime options, using the different runtime setting.
-    main(config=update_config(config=cfg, option=opt))
+    main(config=update_config(config=cfg, option=opt), video_path=opt.video_path)
