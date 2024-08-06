@@ -28,3 +28,13 @@ SAVE_CHECKPOINT_PER_EPOCH: 4
 
 # wandb
 EXP_NAME: pretrain_r50_deformable_detr_pigtrack
+
+# Inference:
+INFERENCE_DATASET: PigTrack
+INFERENCE_SPLIT: val
+INFERENCE_MAX_SIZE: 1333
+# # Thresholds (not changed from base config):
+# ID_THRESH: 0.2
+# DET_THRESH: 0.3 # only consider detections whose confidence exceeds this threshold
+# NEWBORN_THRESH: 0.6 # only consider detections whose confidence exceeds this threshold for newborn objects (stricter than DET_THRESH)
+# AREA_THRESH: 100 # only consider detections whose area exceeds this threshold

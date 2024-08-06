@@ -103,7 +103,7 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
 
     tracker_dir = os.path.join(outputs_dir, "tracker")
     dataset_dir = os.path.join(config["DATA_ROOT"], dataset)
-    if dataset in ["DanceTrack", "SportsMOT"]:
+    if dataset in ["DanceTrack", "SportsMOT", "PigTrack"]:
         gt_dir = os.path.join(dataset_dir, data_split)
     elif dataset in ["MOT17_SPLIT", "MOT15", "MOT15_V2", "MOT17"]:
         gt_dir = os.path.join(dataset_dir, data_split)
@@ -115,7 +115,7 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
 
     if is_main_process():
         # Need to eval the submit tracker:
-        if dataset == "DanceTrack" or dataset == "SportsMOT":
+        if dataset == "DanceTrack" or dataset == "SportsMOT" or dataset == "PigTrack":
             os.system(f"python3 TrackEval/scripts/run_mot_challenge.py --SPLIT_TO_EVAL {data_split}  "
                       f"--METRICS HOTA CLEAR Identity  --GT_FOLDER {gt_dir} "
                       f"--SEQMAP_FILE {os.path.join(dataset_dir, f'{data_split}_seqmap.txt')} "
