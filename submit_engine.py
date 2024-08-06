@@ -225,7 +225,7 @@ def submit_one_seq(
                 for obj_id, box in zip(id_results, box_results):
                     obj_id = int(obj_id.item())
                     x1, y1, x2, y2 = box.tolist()
-                    if dataset in ["DanceTrack", "MOT17", "SportsMOT", "MOT17_SPLIT", "MOT15", "MOT15_V2"]:
+                    if dataset in ["DanceTrack", "MOT17", "SportsMOT", "MOT17_SPLIT", "MOT15", "MOT15_V2", "PigTrack"]:
                         result_line = f"{i + 1}," \
                                       f"{obj_id}," \
                                       f"{x1},{y1},{x2 - x1},{y2 - y1},1,-1,-1,-1\n"
@@ -240,7 +240,7 @@ def submit_one_seq(
 
 
 def get_seq_names(data_root: str, dataset: str, data_split: str):
-    if dataset in ["DanceTrack", "SportsMOT", "MOT17", "MOT17_SPLIT"]:
+    if dataset in ["DanceTrack", "SportsMOT", "MOT17", "MOT17_SPLIT", "PigTrack"]:
         dataset_dir = os.path.join(data_root, dataset, data_split)
         return sorted(os.listdir(dataset_dir))
     else:

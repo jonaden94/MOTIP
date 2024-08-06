@@ -22,7 +22,7 @@ CONDA_BASE=$(conda info --base)
 echo $CONDA_BASE
 source $CONDA_BASE/etc/profile.d/conda.sh
 conda activate motip
-cd repos/MOTIP
+cd ~/repos/MOTIP
 
 
 echo "running script"

@@ -24,7 +24,7 @@ ACCUMULATE_STEPS: 1
 
 # Eval:
 INFERENCE_ONLY_DETR: True
-SAVE_CHECKPOINT_PER_EPOCH: 4
+SAVE_CHECKPOINT_PER_EPOCH: 1
 
 # wandb
 EXP_NAME: pretrain_r50_deformable_detr_pigtrack
