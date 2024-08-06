@@ -94,6 +94,7 @@ class Logger:
                     entity=config["EXP_OWNER"],
                     name=exp_name,
                     config=config,
+                    settings=wandb.Settings(start_method="fork")
                 )   # for more details, see https://docs.wandb.ai/ref/python/init
 
         return

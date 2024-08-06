@@ -37,6 +37,10 @@ def train(config: dict, logger: Logger):
         logger.print(f"Load DETR pretrain model from {config['DETR_PRETRAIN']}.")
     else:
         logger.print("No pre-trained detr used.")
+        
+    if config["PRETRAIN"] is not None:
+        load_checkpoint(model, path=config["PRETRAIN"])
+        logger.print("Use full pretrained model.")
 
     # For optimizer:
     param_groups = get_param_groups(model=model, config=config)

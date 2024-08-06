@@ -48,6 +48,10 @@ class MOTDataset(Dataset):
         self.sample_mode = None
         self.sample_interval = None
         # Dataset structures: three keys: dataset, split and seqs. seqs itself is a dict that has all sequence names with corresponding images_dir, image_names, max_frames and gt_path
+        # self.datasets = [
+        #     self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_], seqmap_name=config["DATASET_SEQMAP_NAMES"][_])
+        #     for _ in range(len(config["DATASETS"]))
+        # ]
         self.datasets = [
             self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_], seqmap_name=config["DATASET_SEQMAP_NAMES"][_])
             for _ in range(len(config["DATASETS"]))
@@ -79,7 +83,7 @@ class MOTDataset(Dataset):
         frames_idx = self.sample_frames_idx(dataset=dataset, split=split, seq=seq, begin=begin)
         images, infos = self.get_multi_frames(dataset=dataset, split=split, seq=seq, frames=frames_idx)
         if self.transforms is not None:
-            if infos[0]["dataset"] in ["CrowdHuman"]:   # static images
+            if infos[0]["dataset"] in ["CrowdHuman", "PigDetect"]:   # static images
                 images, infos = self.transforms["static"](images, infos)
             else:
                 images, infos = self.transforms["video"](images, infos)
@@ -93,7 +97,7 @@ class MOTDataset(Dataset):
     def get_dataset_structure(self, dataset: str, split: str, seqmap_name: str):
         dataset_dir = os.path.join(self.data_root, dataset)
         structure = {"dataset": dataset, "split": split}
-        if dataset == "DanceTrack" or dataset == "SportsMOT":
+        if dataset == "DanceTrack" or dataset == "SportsMOT" or dataset == "PigTrack":
             split_dir = os.path.join(dataset_dir, split)
             seq_names = os.listdir(split_dir)
 
@@ -112,7 +116,7 @@ class MOTDataset(Dataset):
                 }
                 for seq in seq_names
             }
-        elif dataset == "CrowdHuman":
+        elif dataset == "CrowdHuman" or dataset == "PigDetect":
             split_dir = os.path.join(dataset_dir, split)
             seq_names = os.listdir(os.path.join(split_dir, "images"))
             seq_names = [_[:-4] for _ in seq_names]
@@ -172,7 +176,7 @@ class MOTDataset(Dataset):
                     with open(gt_path, "r") as gt_file:
                         for line in gt_file:
                             line = line[:-1]
-                            if dataset_name == "DanceTrack" or dataset_name == "SportsMOT":
+                            if dataset_name == "DanceTrack" or dataset_name == "SportsMOT" or dataset_name == "PigTrack":
                                 # [frame, id, x, y, w, h, 1, 1, 1]
                                 f, i, x, y, w, h, _, _, _ = line.split(",")
                                 label = 0
@@ -180,7 +184,7 @@ class MOTDataset(Dataset):
                             elif dataset_name == "MOT17" or dataset_name == "MOT17_SPLIT":
                                 f, i, x, y, w, h, v = line.split(" ")
                                 label = 0
-                            elif dataset_name == "CrowdHuman":
+                            elif dataset_name == "CrowdHuman" or dataset_name == "PigDetect":
                                 f, i, x, y, w, h = line.split(" ")
                                 label = 0
                                 v = 1
@@ -211,7 +215,7 @@ class MOTDataset(Dataset):
 
         for dataset in self.datasets:
             for seq in dataset["seqs"]:
-                if dataset["dataset"] in ["CrowdHuman"]:    # keep all frames, since they are static images:
+                if dataset["dataset"] in ["CrowdHuman", "PigDetect"]:    # keep all frames, since they are static images:
                     if self.dataset_weights is None:
                         self.sample_frames_begin.append(
                             (dataset["dataset"], dataset["split"], seq, 0)
@@ -256,7 +260,7 @@ class MOTDataset(Dataset):
 
     def sample_frames_idx(self, dataset: str, split: str, seq: str, begin: int) -> list[int]:
         if self.sample_mode == "random_interval":
-            if dataset in ["CrowdHuman"]:       # static images, repeat is all right:
+            if dataset in ["CrowdHuman", "PigDetect"]:       # static images, repeat is all right:
                 return [begin] * self.sample_length
             elif self.sample_length == 1:       # only train detection:
                 return [begin]

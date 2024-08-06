@@ -10,6 +10,6 @@ __pycache__/
 
 # folders
 datasets
-pretrains
 outputs
+pretrained
 models/ops/build

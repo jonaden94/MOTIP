@@ -11,6 +11,9 @@ AVAILABLE_GPUS: 0,1,2,3,4,5,6,7
 # Git version:
 GIT_VERSION: 2.39.3              # you should input the git version here, if you are using wandb to log your experiments.
 
+# pretrain complete model
+PRETRAIN: ~
+
 # Datasets:
 DATASETS: [DanceTrack]    # for joint training, there may be multiple datasets, like: [CrowdHuman, MOT17]
 DATASET_SPLITS: [train]   # and corresponding splits, like: [train, val]
@@ -44,7 +47,6 @@ SEQ_NUM_HEADS: 8
 # Backbone:
 BACKBONE: resnet50
 DILATION: False
-WEIGHTS_IMAGENET_PATH: ./pretrains/resnet50-11ad3fa6.pth
 # About DETR-Framework
 DETR_NUM_QUERIES: 300
 DETR_NUM_FEATURE_LEVELS: 4
@@ -65,7 +67,7 @@ DETR_CLS_LOSS_COEF: 2.0
 DETR_BBOX_LOSS_COEF: 5.0
 DETR_GIOU_LOSS_COEF: 2.0
 DETR_FOCAL_ALPHA: 0.25
-DETR_PRETRAIN: ./pretrains/r50_deformable_detr_coco_dancetrack.pth
+DETR_PRETRAIN: ./pretrained/detr/r50_deformable_detr_coco_dancetrack.pth
 DETR_FRAMEWORK: Deformable-DETR
 
 # Training Setting:
@@ -118,10 +120,10 @@ AREA_THRESH: 100 # only consider detections whose area exceeds this threshold
 OUTPUTS_DIR:
 OUTPUTS_PER_STEP: 100
 SAVE_CHECKPOINT_PER_EPOCH: 1
-USE_TENSORBOARD: True
+USE_TENSORBOARD: False
 USE_WANDB: True
 PROJECT_NAME: MOTIP
-EXP_NAME: r50_deformable_detr_motip_dancetrack
+EXP_NAME: r50_deformable_detr_motip_dancetrack_new
 EXP_GROUP: ~
 EXP_OWNER: ~
 
