@@ -90,5 +90,4 @@ srun python main.py \
     --data-root ./datasets/ \
     --use-wandb True
     # --outputs-dir ./outputs/half_lr_compared_to_other_training \
-    # --lr 5e-5 \
     # --resume-model /user/henrich1/u12041/repos/MOTIP/outputs/r50_deformable_detr_motip_dancetrack/checkpoint_7.pth

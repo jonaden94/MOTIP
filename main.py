@@ -64,6 +64,7 @@ def parse_option():
     # About outputs.
     parser.add_argument("--use-wandb", type=str)
     parser.add_argument("--outputs-dir", type=str, help="Outputs dir.")
+    parser.add_argument("--exp-owner", type=str)
     parser.add_argument("--exp-name", type=str, help="Exp name.")
     parser.add_argument("--exp-group", type=str, help="Exp group, for wandb.")
     parser.add_argument("--save-checkpoint-per-epoch", type=int)
@@ -122,6 +123,13 @@ def main(config: dict, video_path=None):
         config: Model configs.
     """
     os.environ["CUDA_VISIBLE_DEVICES"] = config["AVAILABLE_GPUS"]   # setting available gpus, like: "0,1,2,3"
+
+    _not_use_tf32 = False if "USE_TF32" not in config else not config["USE_TF32"]
+    if _not_use_tf32:
+        torch.backends.cuda.matmul.allow_tf32 = False
+        torch.backends.cudnn.allow_tf32 = False
+        if is_main_process():
+            print("Not use TF32 on Ampere GPUs.")
 
     if config["USE_DISTRIBUTED"]:
         # https://i.steer.space/blog/2021/01/pytorch-dist-nccl-backend-allgather-stuck
