@@ -4,14 +4,121 @@
 import os
 import math
 import random
-
+import argparse
 import yaml
 import torch
 import torchvision
 import torch.distributed
 import random
+import subprocess
 import numpy as np
+from munch import Munch
 from typing import Any, Dict, Generator, ItemsView, List, Tuple
+
+
+def parse_option():
+    """
+    Build a parser that can set up runtime options, such as choose device, data path, and so on.
+    Every option in this parser should appear in .yaml config file (like ./configs/resnet18_mnist.yaml),
+    except --config.
+
+    Returns:
+        A parser.
+
+    """
+    parser = argparse.ArgumentParser("Network training and evaluation script.", add_help=True)
+
+    # Git:
+    parser.add_argument("--git-version", type=str)
+
+    # Running mode, Training? Evaluation? or ?
+    parser.add_argument("--mode", type=str, help="Running mode.")
+    # logging every n steps
+    parser.add_argument("--outputs-per-step", type=int, help="Print log every n steps.")
+
+    # About model setting:
+    parser.add_argument("--backbone", type=str)
+    parser.add_argument("--detr-num-queries", type=int)
+    parser.add_argument("--detr-pretrain", type=str)    # DETR pretrain
+    # parser.add_argument("--num-seq-decoder-layers", type=int)
+    parser.add_argument("--seq-hidden-dim", type=int)
+    parser.add_argument("--seq-dim-feedforward", type=int)
+    parser.add_argument("--id-decoder-layers", type=int)
+    parser.add_argument("--num-id-vocabulary", type=int)
+
+    # Config file.
+    parser.add_argument("--config", type=str, help="Config file path.",
+                        default="./configs/resnet18_mnist.yaml")
+    parser.add_argument("--super-config-path", type=str)
+
+    # About system.
+    parser.add_argument("--device", type=str, help="Device.")
+    parser.add_argument("--num-cpu-per-gpu", type=int)
+    parser.add_argument("--num-workers", type=int)
+
+    # About data.
+    parser.add_argument("--data-path", type=str, help="Data path.")
+    parser.add_argument("--data-root", type=str)
+    parser.add_argument("--sample-lengths", nargs="*", type=int)
+    parser.add_argument("--sample-intervals", nargs="*", type=int)
+    parser.add_argument("--max-temporal-length", type=int)
+    parser.add_argument("--aug-random-shift-max-ratio", type=float)
+    parser.add_argument("--dataset-weights", nargs="*", type=float)
+    parser.add_argument("--datasets", nargs="*", type=str)
+    parser.add_argument("--dataset-splits", nargs="*", type=str)
+
+    # About outputs.
+    parser.add_argument("--use-wandb", type=str)
+    parser.add_argument("--outputs-dir", type=str, help="Outputs dir.")
+    parser.add_argument("--exp-owner", type=str)
+    parser.add_argument("--exp-name", type=str, help="Exp name.")
+    parser.add_argument("--exp-group", type=str, help="Exp group, for wandb.")
+    parser.add_argument("--save-checkpoint-per-epoch", type=int)
+
+    # About train setting:
+    parser.add_argument("--resume-model", type=str, help="Resume training model path.")
+    parser.add_argument("--resume-optimizer", type=str)
+    parser.add_argument("--resume-scheduler", type=str)
+    parser.add_argument("--detr-num-train-frames", type=int)
+    parser.add_argument("--accumulate-steps", type=int)
+    parser.add_argument("--detr-checkpoint-frames", type=int)
+    parser.add_argument("--seq-decoder-checkpoint", type=str)
+    parser.add_argument("--training-num-id", type=int)
+    parser.add_argument("--memory-optimized-detr-criterion", type=str)
+    parser.add_argument("--auto-memory-optimized-detr-criterion", type=str)
+    parser.add_argument("--checkpoint-detr-criterion", type=str)
+    # Training augmentation parameters:
+    parser.add_argument("--traj-drop-ratio", type=float)
+    parser.add_argument("--traj-switch-ratio", type=float)
+
+    # About evaluation and submit:
+    parser.add_argument("--inference-model", type=str)
+    parser.add_argument("--inference-config-path", type=str)
+    parser.add_argument("--inference-group", type=str)
+    parser.add_argument("--inference-split", type=str)
+    parser.add_argument("--inference-dataset", type=str)
+    parser.add_argument("--inference-max-size", type=int)
+
+    # Distributed.
+    parser.add_argument("--use-distributed", type=str, help="Whether use distributed mode.")
+
+    # Hyperparams.
+    parser.add_argument("--epochs", type=int)
+    parser.add_argument("--scheduler-milestones", type=int, nargs="*")
+    parser.add_argument("--batch-size", type=int)
+    parser.add_argument("--weight-decay", type=float)
+    parser.add_argument("--lr", type=float)
+    parser.add_argument("--lr-warmup-epochs", type=int)
+    parser.add_argument("--id-thresh", type=float)
+    parser.add_argument("--det-thresh", type=float)
+    parser.add_argument("--newborn-thresh", type=float)
+    parser.add_argument("--area-thresh", type=int)
+    parser.add_argument("--detr-cls-loss-coef", type=float)
+    
+    # video infer
+    parser.add_argument("--video_path", type=str, default='')
+
+    return parser.parse_args()
 
 
 def set_seed(seed: int):
@@ -58,6 +165,63 @@ def distributed_world_size():
         # raise RuntimeError("'world size' is not available when distributed mode is not started.")
 
 
+def init_distributed_mode(args):
+    if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
+        args.rank = int(os.environ["RANK"])
+        args.world_size = int(os.environ['WORLD_SIZE'])
+        args.gpu = int(os.environ['LOCAL_RANK'])
+        args.dist_url = 'env://'
+        os.environ['LOCAL_SIZE'] = str(torch.cuda.device_count())
+    elif 'SLURM_PROCID' in os.environ:
+        proc_id = int(os.environ['SLURM_PROCID'])
+        ntasks = int(os.environ['SLURM_NTASKS'])
+        node_list = os.environ['SLURM_NODELIST']
+        num_gpus = torch.cuda.device_count()
+        addr = subprocess.getoutput(
+            'scontrol show hostname {} | head -n1'.format(node_list))
+        os.environ['MASTER_PORT'] = os.environ.get('MASTER_PORT', '29500')
+        os.environ['MASTER_ADDR'] = addr
+        os.environ['WORLD_SIZE'] = str(ntasks)
+        os.environ['RANK'] = str(proc_id)
+        os.environ['LOCAL_RANK'] = str(proc_id % num_gpus)
+        os.environ['LOCAL_SIZE'] = str(num_gpus)
+        args.dist_url = 'env://'
+        args.world_size = ntasks
+        args.rank = proc_id
+        args.gpu = proc_id % num_gpus
+    else:
+        print('Not using distributed mode')
+        args.distributed = False
+        return
+
+    args.distributed = True
+    
+    torch.cuda.set_device(args.gpu)
+
+    args.dist_backend = 'nccl'
+    print('| distributed init (rank {}): {}'.format(
+        args.rank, args.dist_url), flush=True)
+    torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+                                         world_size=args.world_size, rank=args.rank)
+    torch.distributed.barrier()
+    setup_for_distributed(args.rank == 0)
+    
+    
+def setup_for_distributed(is_master):
+    """
+    This function disables printing when not in master process
+    """
+    import builtins as __builtin__
+    builtin_print = __builtin__.print
+
+    def print(*args, **kwargs):
+        force = kwargs.pop('force', False)
+        if is_master or force:
+            builtin_print(*args, **kwargs)
+
+    __builtin__.print = print
+
+
 def yaml_to_dict(path: str):
     """
     Read a yaml file into a dict.
@@ -69,7 +233,7 @@ def yaml_to_dict(path: str):
         A dict.
     """
     with open(path) as f:
-        return yaml.load(f.read(), yaml.FullLoader)
+        return Munch.fromDict(yaml.load(f.read(), yaml.FullLoader))
 
 
 def labels_to_one_hot(labels: torch.Tensor, class_num: int, device="cpu"):

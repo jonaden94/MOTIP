@@ -1,24 +1,25 @@
-SUPER_CONFIG_PATH:
-
-MODE:       # "train" or "eval" or "submit", for the main.py script.
+SUPER_CONFIG_PATH: ~
+CONFIG: ~
+MODE: ~ # "train" or "eval" or "submit", for the main.py script.
 
 # System config, like CPU/GPU
-NUM_CPU_PER_GPU:          # number of CPU per GPU
+NUM_CPU_PER_GPU: # number of CPU per GPU
 NUM_WORKERS: 6
 DEVICE: cuda
 AVAILABLE_GPUS: 0,1,2,3,4,5,6,7
 
 # Git version:
-GIT_VERSION: 2.39.3              # you should input the git version here, if you are using wandb to log your experiments.
+GIT_VERSION: 2.42.0 # you should input the git version here, if you are using wandb to log your experiments.
 
-# pretrain complete model
+# complete pretrained model (as opposed to DETR_PRETRAIN)
 PRETRAIN: ~
 
 # Datasets:
-DATASETS: [DanceTrack]    # for joint training, there may be multiple datasets, like: [CrowdHuman, MOT17]
-DATASET_SPLITS: [train]   # and corresponding splits, like: [train, val]
-DATASET_SEQMAP_NAMES: [train_seqmap.txt]
-DATA_ROOT: ./datasets/    # datasets root
+DATASETS: [DanceTrack] # for joint training, there may be multiple datasets, like: [crowdhuman, MOT17]
+DATASET_SPLITS: [train] # and corresponding splits, like: [train, val]
+DATASET_SEQMAP_NAMES: [~]
+DATASET_TYPES: ['track']
+DATA_ROOT: ./datasets/data # datasets root
 # Sampling settings: (all are lists of same length that determine how frames are sampled for training)
 SAMPLE_STEPS: [0] # list of epoch numbers (in descending order). the corresponding values from SAMPLE_LENGTHS, SAMPLE_MODES and SAMPLE_INTERVALS are then taken when specific epoch is reached
 SAMPLE_LENGTHS: [40] # number of consecutive frames per iteration
@@ -67,7 +68,7 @@ DETR_CLS_LOSS_COEF: 2.0
 DETR_BBOX_LOSS_COEF: 5.0
 DETR_GIOU_LOSS_COEF: 2.0
 DETR_FOCAL_ALPHA: 0.25
-DETR_PRETRAIN: ./pretrained/detr/r50_deformable_detr_coco_dancetrack.pth
+DETR_PRETRAIN: ./datasets/pretrained/detr/r50_deformable_detr_coco_dancetrack.pth
 DETR_FRAMEWORK: Deformable-DETR
 
 # Training Setting:
@@ -123,12 +124,12 @@ SAVE_CHECKPOINT_PER_EPOCH: 1
 USE_TENSORBOARD: False
 USE_WANDB: True
 PROJECT_NAME: MOTIP
-EXP_NAME: r50_deformable_detr_motip_dancetrack_new
+EXP_NAME: ~
 EXP_GROUP: ~
 EXP_OWNER: ~
 
 # Settings which are used to reduce the memory usage of DETR criterion.
-# Too many objects (such as CrowdHuman) may cause OOM error.
+# Too many objects (such as crowdhuman) may cause OOM error.
 MEMORY_OPTIMIZED_DETR_CRITERION: False
 AUTO_MEMORY_OPTIMIZED_DETR_CRITERION: False
 CHECKPOINT_DETR_CRITERION: False

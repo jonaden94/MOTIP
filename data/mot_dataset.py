@@ -21,8 +21,9 @@ class MOTDataset(Dataset):
     Unified API for all MOT Datasets.
     """
     def __init__(self, config: dict):
-        assert len(config["DATASETS"]) == len(config["DATASET_SPLITS"]), f"Get {len(config['DATASETS'])} datasets" \
-                                                                         f"but {len(config['DATASET_SPLITS'])} splits."
+        assert len(config["DATASETS"]) == len(config["DATASET_SPLITS"]) == len(config["DATASET_SEQMAP_NAMES"]) == len(config["DATASET_TYPES"]), \
+        f"Provide equally sized DATASETS, DATASET_SPLITS, DATASET_SEQMAP_NAMES and DATASET_TYPES arguments."
+        
         # Unified random state:
         multi_random_state = random.getstate()
         random.seed(config["SEED"])
@@ -47,13 +48,12 @@ class MOTDataset(Dataset):
         self.sample_length = None
         self.sample_mode = None
         self.sample_interval = None
-        # Dataset structures: three keys: dataset, split and seqs. seqs itself is a dict that has all sequence names with corresponding images_dir, image_names, max_frames and gt_path
-        # self.datasets = [
-        #     self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_], seqmap_name=config["DATASET_SEQMAP_NAMES"][_])
-        #     for _ in range(len(config["DATASETS"]))
-        # ]
+        # Dataset structures: four keys: dataset, split, seqs and type. 
+        # seqs itself is a dict that has all sequence names with corresponding images_dir, image_names, max_frames and gt_path
+        # seqs is is filtered based on DATASET_SEQMAP_NAMES if it is provided. Otherwise, all sequences in the specified folder are used.
         self.datasets = [
-            self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_], seqmap_name=config["DATASET_SEQMAP_NAMES"][_])
+            self.get_dataset_structure(dataset=config["DATASETS"][_], split=config["DATASET_SPLITS"][_], 
+                                       seqmap_name=config["DATASET_SEQMAP_NAMES"][_], dataset_type=config["DATASET_TYPES"][_])
             for _ in range(len(config["DATASETS"]))
         ]
         if "DATASET_WEIGHTS" in config:
@@ -64,7 +64,7 @@ class MOTDataset(Dataset):
                 pass
         else:
             self.dataset_weights = None
-        # Dataset infos, key just like: [DanceTrack][train][seq][frame], value is {image_path: _, gt: [_, _, ...]}
+        # Dataset infos, key just like: [DatasetName][train][seq][frame], value is {image_path: _, gt: [_, _, ...]}
         # moreover, gts format is [frame, id, label, visibility, x_left, y_top, w, h]
         self.infos = self.get_dataset_infos()
         # Begin frames details, in format: [dataset, split, seq, frame] in tuple, for subsequent sampling step:
@@ -79,14 +79,16 @@ class MOTDataset(Dataset):
         return len(self.sample_frames_begin)
 
     def __getitem__(self, item):
-        dataset, split, seq, begin = self.sample_frames_begin[item]
-        frames_idx = self.sample_frames_idx(dataset=dataset, split=split, seq=seq, begin=begin)
-        images, infos = self.get_multi_frames(dataset=dataset, split=split, seq=seq, frames=frames_idx)
+        dataset, split, dataset_type, seq, begin = self.sample_frames_begin[item]
+        frames_idx = self.sample_frames_idx(dataset=dataset, split=split, dataset_type=dataset_type, seq=seq, begin=begin)
+        images, infos = self.get_multi_frames(dataset=dataset, split=split, dataset_type=dataset_type, seq=seq, frames=frames_idx)
         if self.transforms is not None:
-            if infos[0]["dataset"] in ["CrowdHuman", "PigDetect"]:   # static images
+            if infos[0]["dataset_type"] == "det":   # static images
                 images, infos = self.transforms["static"](images, infos)
-            else:
+            elif infos[0]["dataset_type"] == "track":  # real video
                 images, infos = self.transforms["video"](images, infos)
+            else:
+                raise NotImplementedError(f"Do not support dataset type '{infos[0]['dataset_type']}'.")
         assert all([len(info["boxes"]) > 0 for info in infos])
         return {
             # "images": stacked_images,
@@ -94,10 +96,10 @@ class MOTDataset(Dataset):
             "infos": infos
         }
 
-    def get_dataset_structure(self, dataset: str, split: str, seqmap_name: str):
+    def get_dataset_structure(self, dataset: str, split: str, seqmap_name: str, dataset_type: str):
         dataset_dir = os.path.join(self.data_root, dataset)
-        structure = {"dataset": dataset, "split": split}
-        if dataset == "DanceTrack" or dataset == "SportsMOT" or dataset == "PigTrack":
+        structure = {"dataset": dataset, "split": split, 'dataset_type': dataset_type}
+        if dataset_type == "track":
             split_dir = os.path.join(dataset_dir, split)
             seq_names = os.listdir(split_dir)
 
@@ -116,7 +118,7 @@ class MOTDataset(Dataset):
                 }
                 for seq in seq_names
             }
-        elif dataset == "CrowdHuman" or dataset == "PigDetect":
+        elif dataset_type == "det":
             split_dir = os.path.join(dataset_dir, split)
             seq_names = os.listdir(os.path.join(split_dir, "images"))
             seq_names = [_[:-4] for _ in seq_names]
@@ -124,30 +126,6 @@ class MOTDataset(Dataset):
                 seq: {
                     "image_path": os.path.join(split_dir, "images", f"{seq}.jpg"),
                     "gt_path": os.path.join(split_dir, "gts", f"{seq}.txt"),
-                }
-                for seq in seq_names
-            }
-        elif dataset == "MOT17" or dataset == "MOT17_SPLIT":
-            split_dir = os.path.join(dataset_dir, split)
-            seq_names = os.listdir(split_dir)
-            structure["seqs"] = {
-                seq: {
-                    "images_dir": os.path.join(split_dir, seq, "img1"),
-                    "gt_path": os.path.join(split_dir, seq, "gt", "format_gt.txt"),
-                    "images_name": os.listdir(os.path.join(split_dir, seq, "img1")),
-                    "max_frame": max([int(_[:-4]) for _ in os.listdir(os.path.join(split_dir, seq, "img1"))])
-                }
-                for seq in seq_names
-            }
-        elif dataset == "MOT15_V2":
-            split_dir = os.path.join(dataset_dir, split)
-            seq_names = os.listdir(split_dir)
-            structure["seqs"] = {
-                seq: {
-                    "images_dir": os.path.join(split_dir, seq, "img1"),
-                    "gt_path": os.path.join(split_dir, seq, "gt", "gt.txt"),
-                    "images_name": os.listdir(os.path.join(split_dir, seq, "img1")),
-                    "max_frame": max([int(_[:-4]) for _ in os.listdir(os.path.join(split_dir, seq, "img1"))])
                 }
                 for seq in seq_names
             }
@@ -160,6 +138,7 @@ class MOTDataset(Dataset):
         for dataset in self.datasets:
             seqs = dataset["seqs"]
             dataset_name = dataset["dataset"]
+            dataset_type = dataset["dataset_type"]
             for seq_name, seq in seqs.items():
                 if "images_name" in seq:    # for true sequence
                     for frame in seq["images_name"]:
@@ -171,25 +150,21 @@ class MOTDataset(Dataset):
                     infos[dataset_name][dataset["split"]][seq_name][0]["gts"] = []
                 # Prepare GTs for different frames:
                 gt_path = seq["gt_path"] if "gt_path" in seq else None
-                gts_dir = seq["gts_dir"] if "gts_dir" in seq else None
                 if gt_path is not None:
                     with open(gt_path, "r") as gt_file:
                         for line in gt_file:
                             line = line[:-1]
-                            if dataset_name == "DanceTrack" or dataset_name == "SportsMOT" or dataset_name == "PigTrack":
+                            if dataset_type == "track":
                                 # [frame, id, x, y, w, h, 1, 1, 1]
                                 f, i, x, y, w, h, _, _, _ = line.split(",")
                                 label = 0
                                 v = 1
-                            elif dataset_name == "MOT17" or dataset_name == "MOT17_SPLIT":
-                                f, i, x, y, w, h, v = line.split(" ")
-                                label = 0
-                            elif dataset_name == "CrowdHuman" or dataset_name == "PigDetect":
+                            elif dataset_type == "det":
                                 f, i, x, y, w, h = line.split(" ")
                                 label = 0
                                 v = 1
                             else:
-                                raise NotImplementedError(f"Can't analysis the gts of dataset '{dataset_name}'.")
+                                raise NotImplementedError(f"Can't analysis the gts of dataset '{dataset_type}'.")
                             # format, and write into infos
                             f, i, label = map(int, (f, i, label))
                             x, y, w, h, v = map(float, (x, y, w, h, v))
@@ -215,17 +190,17 @@ class MOTDataset(Dataset):
 
         for dataset in self.datasets:
             for seq in dataset["seqs"]:
-                if dataset["dataset"] in ["CrowdHuman", "PigDetect"]:    # keep all frames, since they are static images:
+                if dataset["dataset_type"] == "det":    # keep all frames, since they are static images:
                     if self.dataset_weights is None:
                         self.sample_frames_begin.append(
-                            (dataset["dataset"], dataset["split"], seq, 0)
+                            (dataset["dataset"], dataset["split"], dataset["dataset_type"], seq, 0)
                         )
                     else:
                         for _ in range(int(self.dataset_weights[dataset["dataset"]][dataset["split"]])):
                             self.sample_frames_begin.append(
-                                (dataset["dataset"], dataset["split"], seq, 0)
+                                (dataset["dataset"], dataset["split"], dataset["dataset_type"], seq, 0)
                             )
-                else:                                       # real video:
+                elif dataset["dataset_type"] == "track":                                       # real video:
                     f_min = int(min(self.infos[dataset["dataset"]][dataset["split"]][seq].keys())) # minimum frame number of a sequence
                     f_max = int(max(self.infos[dataset["dataset"]][dataset["split"]][seq].keys())) # maximum frame number of a sequence
                     for f in range(f_min, f_max - (self.sample_length - 1) + 1):
@@ -233,7 +208,7 @@ class MOTDataset(Dataset):
                                 for _ in range(self.sample_length)]):   # make sure at least a legal seq with gts:
                             if self.dataset_weights is None:
                                 self.sample_frames_begin.append(
-                                    (dataset["dataset"], dataset["split"], seq, f)
+                                    (dataset["dataset"], dataset["split"], dataset["dataset_type"], seq, f)
                                 )
                             else:
                                 weight = self.dataset_weights[dataset["dataset"]][dataset["split"]]
@@ -243,28 +218,30 @@ class MOTDataset(Dataset):
                                     weight = int(weight)
                                     for _ in range(weight):
                                         self.sample_frames_begin.append(
-                                            (dataset["dataset"], dataset["split"], seq, f)
+                                            (dataset["dataset"], dataset["split"], dataset["dataset_type"], seq, f)
                                         )
                                 elif isinstance(weight, float) and weight <= 1.0:
                                     multi_random_state = random.getstate()
                                     random.setstate(self.unified_random_state)
                                     if random.random() < weight:
                                         self.sample_frames_begin.append(
-                                            (dataset["dataset"], dataset["split"], seq, f)
+                                            (dataset["dataset"], dataset["split"], dataset["dataset_type"], seq, f)
                                         )
                                     self.unified_random_state = random.getstate()
                                     random.setstate(multi_random_state)
                                 else:
                                     raise NotImplementedError(f"Do not support dataset weight '{weight}'.")
+                else:
+                    raise NotImplementedError(f"Do not support dataset type '{dataset['dataset_type']}'.")
         return
 
-    def sample_frames_idx(self, dataset: str, split: str, seq: str, begin: int) -> list[int]:
+    def sample_frames_idx(self, dataset: str, split: str, dataset_type: str, seq: str, begin: int) -> list[int]:
         if self.sample_mode == "random_interval":
-            if dataset in ["CrowdHuman", "PigDetect"]:       # static images, repeat is all right:
+            if dataset_type == "det": # static images, repeat is all right:
                 return [begin] * self.sample_length
-            elif self.sample_length == 1:       # only train detection:
+            elif dataset_type == "track" and self.sample_length == 1: # only train detection:
                 return [begin]
-            else:                               # real video, do something to sample:
+            elif dataset_type == "track" and not self.sample_length == 1: # real video, do something to sample:
                 remain_frames = int(max(self.infos[dataset][split][seq].keys())) - begin
                 max_interval = floor(remain_frames / (self.sample_length - 1))
                 interval = min(randint(1, self.sample_interval), max_interval)      # legal interval
@@ -273,19 +250,22 @@ class MOTDataset(Dataset):
                     # In the sampling sequence, there is at least a frame's gt is empty, not friendly for training,
                     # make sure all frames have gt:
                     frames_idx = [begin + _ for _ in range(self.sample_length)]
+            else:
+                raise NotImplementedError(f"Do not support dataset type '{dataset_type}'.")
         else:
             raise NotImplementedError(f"Do not support sample mode '{self.sample_mode}'.")
         return frames_idx
 
-    def get_multi_frames(self, dataset: str, split: str, seq: str, frames: list[int]):
-        return zip(*[self.get_single_frame(dataset=dataset, split=split, seq=seq, frame=frame) for frame in frames])
+    def get_multi_frames(self, dataset: str, split: str, dataset_type: str, seq: str, frames: list[int]):
+        return zip(*[self.get_single_frame(dataset=dataset, split=split, dataset_type=dataset_type, seq=seq, frame=frame) for frame in frames])
 
-    def get_single_frame(self, dataset: str, split: str, seq: str, frame: int):
+    def get_single_frame(self, dataset: str, split: str, dataset_type: str, seq: str, frame: int):
         image = Image.open(self.infos[dataset][split][seq][frame]["image_path"])
         info = dict()
         # Details about current image:
         info["image_path"] = self.infos[dataset][split][seq][frame]["image_path"]
         info["dataset"] = dataset
+        info["dataset_type"] = dataset_type
         info["split"] = split
         info["seq"] = seq
         info["frame"] = frame

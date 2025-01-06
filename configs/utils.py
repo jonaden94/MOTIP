@@ -53,7 +53,7 @@ def update_config(config: dict, option: argparse.Namespace) -> dict:
     #     raise RuntimeError("Config's key is not unique, Please check the config file.")
 
     for option_k, option_v in vars(option).items():
-        if option_k != "config_path" and option_k != "video_path" and option_v is not None:  # except --config-path
+        if option_k != "config" and option_k != "video_path" and option_v is not None:  # except --config-path
             # v2.0 remove hierarchical config setting, using plain config setting.
             # hit, config = update_config_with_kv(config=config, k=option_k, v=option_v)
             config_k = option_k.upper()

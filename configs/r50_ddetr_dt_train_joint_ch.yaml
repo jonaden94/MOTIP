@@ -1,11 +1,13 @@
-SUPER_CONFIG_PATH: ./configs/r50_deformable_detr_motip_dancetrack.yaml
+SUPER_CONFIG_PATH: ./configs/r50_ddetr_dt_train.yaml
 
-# Joint training with CrowdHuman:
-DATASETS: [DanceTrack, CrowdHuman, CrowdHuman]
+# Joint training with crowdhuman:
+DATASETS: [DanceTrack, crowdhuman, crowdhuman]
 DATASET_SPLITS: [train, train, val]
+DATASET_SEQMAP_NAMES: [~, ~, ~]
+DATASET_TYPES: ['track', 'det', 'det']
 
 # Different pretrain weights:
-DETR_PRETRAIN: ./pretrains/r50_deformable_detr_coco_dancetrack_joint_ch.pth
+DETR_PRETRAIN: ./datasets/pretrained/detr/r50_deformable_detr_coco_dancetrack_joint_ch.pth
 
 # Data augmentation setting for static images:
 AUG_RANDOM_SHIFT_MAX_RATIO: 0.05
