@@ -10,11 +10,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from models import build_model
 from models.utils import load_checkpoint
-from log.logger import Logger, ProgressLogger
+from log.logger import Logger
 from log.log import Metrics
 from utils.utils import is_distributed, distributed_rank, yaml_to_dict, \
-    distributed_world_size, is_main_process, distributed_world_rank
-from submit_engine import submit_one_seq, get_seq_names
+    distributed_world_size, is_main_process
+from engines.inference_engine import submit_one_seq, get_seq_names
 
 
 def evaluate(config: dict, logger: Logger):
@@ -68,7 +68,6 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
                        outputs_dir: str, only_detr: bool = False):
     model.eval()
     metrics = Metrics()
-    device = config["DEVICE"]
 
     all_seq_names = get_seq_names(data_root=config["DATA_ROOT"], dataset=dataset, data_split=data_split)
     seq_names = [all_seq_names[_] for _ in range(len(all_seq_names))
@@ -122,27 +121,6 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
                       f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
                       f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
                       f"--TRACKERS_FOLDER {tracker_dir}")
-        elif dataset == "MOT17" and data_split == "test":
-            os.system(f"python3 TrackEval/scripts/run_mot_challenge.py --SPLIT_TO_EVAL {data_split}  "
-                      f"--METRICS HOTA CLEAR Identity  --GT_FOLDER {gt_dir} "
-                      f"--SEQMAP_FILE {os.path.join(dataset_dir, f'{data_split}_seqmap.txt')} "
-                      f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
-                      f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
-                      f"--TRACKERS_FOLDER {tracker_dir}")
-        elif dataset == "MOT17_SPLIT" or dataset == "MOT17":
-            os.system(f"python3 TrackEval/scripts/run_mot_challenge.py --SPLIT_TO_EVAL {data_split}  "
-                      f"--METRICS HOTA CLEAR Identity  --GT_FOLDER {gt_dir} "
-                      f"--SEQMAP_FILE {os.path.join(dataset_dir, f'{data_split}_seqmap.txt')} "
-                      f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
-                      f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
-                      f"--TRACKERS_FOLDER {tracker_dir} --BENCHMARK MOT17")
-        elif dataset == "MOT15" or dataset == "MOT15_V2":
-            os.system(f"python3 TrackEval/scripts/run_mot_challenge.py --SPLIT_TO_EVAL {data_split}  "
-                      f"--METRICS HOTA CLEAR Identity  --GT_FOLDER {gt_dir} "
-                      f"--SEQMAP_FILE {os.path.join(dataset_dir, f'{data_split}_seqmap.txt')} "
-                      f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
-                      f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
-                      f"--TRACKERS_FOLDER {tracker_dir} --BENCHMARK MOT15")
         else:
             raise NotImplementedError(f"Do not support to eval the results for dataset '{dataset}'.")
 

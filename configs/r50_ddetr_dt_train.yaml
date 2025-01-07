@@ -108,7 +108,6 @@ INFERENCE_ONLY_DETR: False
 INFERENCE_DATASET: DanceTrack
 INFERENCE_SPLIT: val
 INFERENCE_CONFIG_PATH:          # mostly, you don't need to set this parameter. See submit_engine.py L34 for more details.
-INFERENCE_GROUP:
 INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
 INFERENCE_ENSEMBLE: 0
 # Thresholds:

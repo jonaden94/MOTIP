@@ -2,7 +2,6 @@
 # ------------------------------------------------------------------------
 import os
 import torch
-import wandb
 import torch.nn as nn
 import torch.distributed
 
@@ -14,14 +13,13 @@ from models.motip import MOTIP
 from models.utils import save_checkpoint, load_checkpoint, load_detr_pretrain, get_model
 from models.criterion import build as build_id_criterion
 from data import build_dataset, build_sampler, build_dataloader
-from utils.utils import is_distributed, distributed_rank, \
-    combine_detr_outputs, detr_outputs_index_select, infos_to_detr_targets, batch_iterator
+from utils.utils import combine_detr_outputs, detr_outputs_index_select, infos_to_detr_targets, batch_iterator
 from utils.nested_tensor import nested_tensor_index_select
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import MultiStepLR
-from log.logger import Logger, ProgressLogger
+from log.logger import Logger
 from log.log import Metrics, TPS
-from eval_engine import evaluate_one_epoch
+from engines.eval_engine import evaluate_one_epoch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.checkpoint import checkpoint
 
@@ -85,9 +83,7 @@ def train(config: dict, logger: Logger):
                                 f"States={config['RESUME_STATES']}", mode="a")
 
     # Distributed, every gpu will share the same parameters.
-    # if is_distributed():
     if config.distributed:
-        # model = DDP(model, device_ids=[distributed_rank()])
         model = DDP(model, device_ids=[config.gpu])
 
     for epoch in range(train_states["start_epoch"], config["EPOCHS"]):
@@ -100,7 +96,6 @@ def train(config: dict, logger: Logger):
             batch_size=config["BATCH_SIZE"],
             num_workers=config["NUM_WORKERS"]
         )
-        # if is_distributed():
         if config.distributed:
             sampler_train.set_epoch(epoch)
 

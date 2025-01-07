@@ -39,6 +39,7 @@ def parse_option():
     # About model setting:
     parser.add_argument("--backbone", type=str)
     parser.add_argument("--detr-num-queries", type=int)
+    parser.add_argument("--pretrain", type=str) # full model pretrain
     parser.add_argument("--detr-pretrain", type=str)    # DETR pretrain
     # parser.add_argument("--num-seq-decoder-layers", type=int)
     parser.add_argument("--seq-hidden-dim", type=int)
@@ -69,7 +70,6 @@ def parse_option():
 
     # About outputs.
     parser.add_argument("--use-wandb", type=str)
-    parser.add_argument("--outputs-dir", type=str, help="Outputs dir.")
     parser.add_argument("--exp-owner", type=str)
     parser.add_argument("--exp-name", type=str, help="Exp name.")
     parser.add_argument("--exp-group", type=str, help="Exp group, for wandb.")
@@ -154,7 +154,7 @@ def distributed_world_rank():
 
 
 def is_main_process():
-    return distributed_rank() == 0
+    return distributed_rank() == 0 or int(os.environ['SLURM_PROCID']) == 0
 
 
 def distributed_world_size():
