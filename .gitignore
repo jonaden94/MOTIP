@@ -13,3 +13,4 @@ datasets
 outputs
 pretrained
 models/ops/build
+outputs_scratch

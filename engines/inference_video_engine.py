@@ -275,10 +275,10 @@ def video_info_one(
     return
 
 
-def get_seq_names(data_root: str, dataset: str, data_split: str):
-    if dataset in ["DanceTrack", "SportsMOT", "MOT17", "MOT17_SPLIT"]:
-        dataset_dir = os.path.join(data_root, dataset, data_split)
-        return sorted(os.listdir(dataset_dir))
-    else:
-        raise NotImplementedError(f"Do not support dataset '{dataset}' for eval dataset.")
+# def get_seq_names(data_root: str, dataset: str, data_split: str):
+#     if dataset in ["DanceTrack", "SportsMOT", "MOT17", "MOT17_SPLIT"]:
+#         dataset_dir = os.path.join(data_root, dataset, data_split)
+#         return sorted(os.listdir(dataset_dir))
+#     else:
+#         raise NotImplementedError(f"Do not support dataset '{dataset}' for eval dataset.")
     

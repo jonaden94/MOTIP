@@ -4,7 +4,6 @@ import os
 import torch
 import torch.nn as nn
 import torch.distributed
-
 from einops import rearrange
 from structures.instances import Instances
 from torch.utils.data import DataLoader
@@ -137,33 +136,26 @@ def train(config: dict, logger: Logger):
                             scheduler=scheduler,
                             only_detr=config["TRAIN_STAGE"] == "only_detr",
                             )
+            
+            start_eval_timestamp = TPS.timestamp()
             if config["INFERENCE_DATASET"] is not None:
-                if config["TRAIN_STAGE"] == "only_detr":
-                    eval_metrics = evaluate_one_epoch(
-                        config=config,
-                        model=model,
-                        logger=logger,
-                        dataset=config["INFERENCE_DATASET"],
-                        data_split=config["INFERENCE_SPLIT"],
-                        outputs_dir=os.path.join(config["OUTPUTS_DIR"], config["MODE"],
-                                                 "eval_during_train", config["INFERENCE_SPLIT"], f"epoch_{epoch}"),
-                        only_detr=True
-                    )
-                else:
-                    eval_metrics = evaluate_one_epoch(
-                        config=config,
-                        model=model,
-                        logger=logger,
-                        dataset=config["INFERENCE_DATASET"],
-                        data_split=config["INFERENCE_SPLIT"],
-                        outputs_dir=os.path.join(config["OUTPUTS_DIR"], config["MODE"],
-                                                 "eval_during_train", config["INFERENCE_SPLIT"], f"epoch_{epoch}"),
-                        only_detr=False
-                    )
+                only_detr = config["TRAIN_STAGE"] == "only_detr"
+                eval_metrics = evaluate_one_epoch(
+                    config=config,
+                    model=model,
+                    logger=logger,
+                    dataset=config["INFERENCE_DATASET"],
+                    data_split=config["INFERENCE_SPLIT"],
+                    outputs_dir=os.path.join(config["OUTPUTS_DIR"], config["MODE"],
+                                                "eval_during_train", config["INFERENCE_SPLIT"], f"epoch_{epoch}"),
+                    only_detr=only_detr
+                )
+                    
+                end_eval_timestamp = TPS.timestamp()
                 eval_metrics.sync()
                 logger.print_metrics(
                     metrics=eval_metrics,
-                    prompt=f"[Epoch {epoch} Eval] ",
+                    prompt=f"[Epoch {epoch} Eval] [Total time: {TPS.format(end_eval_timestamp - start_eval_timestamp)}] ",
                     fmt="{global_average:.4f}"
                 )
                 logger.save_metrics(
