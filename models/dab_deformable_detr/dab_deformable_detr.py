@@ -17,11 +17,9 @@ import torch
 import torch.nn.functional as F
 from torch import nn
 import math
-
 from utils import box_ops
 from utils.nested_tensor import NestedTensor, tensor_list_to_nested_tensor
 from utils.utils import inverse_sigmoid, accuracy, interpolate, is_distributed, distributed_world_size
-
 from .backbone import build_backbone
 from .matcher import build_matcher
 from .segmentation import (DETRsegm, PostProcessPanoptic, PostProcessSegm,

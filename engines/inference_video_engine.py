@@ -28,7 +28,7 @@ class VideoDataset(Dataset):
         """
         Args:
             seq_dir:
-            dataset: DanceTrack or MOT17 or et al.
+            dataset: DanceTrack or MOT17 format
         """
         video_path = video_path
         self.video_cap = cv2.VideoCapture(video_path)
@@ -71,8 +71,6 @@ class VideoDataset(Dataset):
 
     def __len__(self):
         return self.frame_count
-
-
 
 
 def video_info(video_path, config: dict, logger: Logger):
@@ -273,12 +271,3 @@ def video_info_one(
     else:
         print(f"Finish >> Submit seq {video_name.split('/')[-1]}. ")
     return
-
-
-# def get_seq_names(data_root: str, dataset: str, data_split: str):
-#     if dataset in ["DanceTrack", "SportsMOT", "MOT17", "MOT17_SPLIT"]:
-#         dataset_dir = os.path.join(data_root, dataset, data_split)
-#         return sorted(os.listdir(dataset_dir))
-#     else:
-#         raise NotImplementedError(f"Do not support dataset '{dataset}' for eval dataset.")
-    

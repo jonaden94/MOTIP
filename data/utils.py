@@ -1,5 +1,5 @@
 # Copyright (c) Ruopeng Gao. All Rights Reserved.
-from utils.nested_tensor import NestedTensor, tensor_list_to_nested_tensor
+from utils.nested_tensor import tensor_list_to_nested_tensor
 
 def collate_fn(batch):
     collated_batch = {

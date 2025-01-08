@@ -13,7 +13,7 @@ import random
 import subprocess
 import numpy as np
 from munch import Munch
-from typing import Any, Dict, Generator, ItemsView, List, Tuple
+from typing import Any, Generator, List
 
 
 def parse_option():

@@ -7,44 +7,43 @@ import argparse
 import yaml
 import wandb
 import time
-
-from tqdm import tqdm
-from typing import List, Any
+# from tqdm import tqdm
+# from typing import Any
 from torch.utils import tensorboard as tb
 
 from log.log import Metrics
 from utils.utils import is_main_process
 
 
-class ProgressLogger:
-    def __init__(self, total_len: int, prompt: str = None, only_main: bool = True):
-        """
-        初始化一个进度日志。
+# class ProgressLogger:
+#     def __init__(self, total_len: int, prompt: str = None, only_main: bool = True):
+#         """
+#         初始化一个进度日志。
 
-        Args:
-            total_len:
-            prompt:
-            only_main: only for the main process.
-        """
-        self.only_main = only_main
-        self.is_activate = (self.only_main and is_main_process()) or (self.only_main is False)
+#         Args:
+#             total_len:
+#             prompt:
+#             only_main: only for the main process.
+#         """
+#         self.only_main = only_main
+#         self.is_activate = (self.only_main and is_main_process()) or (self.only_main is False)
 
-        if self.is_activate:
-            self.total_len = total_len
-            self.tqdm = tqdm(total=total_len)
-            self.prompt = prompt
-        else:
-            self.total_len = None
-            self.tqdm = None
-            self.prompt = None
+#         if self.is_activate:
+#             self.total_len = total_len
+#             self.tqdm = tqdm(total=total_len)
+#             self.prompt = prompt
+#         else:
+#             self.total_len = None
+#             self.tqdm = None
+#             self.prompt = None
 
-    def update(self, step_len: int, **kwargs: Any):
-        if (self.only_main and is_main_process()) or (self.only_main is False):
-            self.tqdm.set_description(self.prompt)
-            self.tqdm.set_postfix(**kwargs)
-            self.tqdm.update(step_len)
-        else:
-            return
+#     def update(self, step_len: int, **kwargs: Any):
+#         if (self.only_main and is_main_process()) or (self.only_main is False):
+#             self.tqdm.set_description(self.prompt)
+#             self.tqdm.set_postfix(**kwargs)
+#             self.tqdm.update(step_len)
+#         else:
+#             return
 
 
 class Logger:
@@ -260,18 +259,18 @@ class Logger:
         pass
 
 
-def parser_to_dict(log: argparse.ArgumentParser) -> dict:
-    """
-    Transform options to a dict.
+# def parser_to_dict(log: argparse.ArgumentParser) -> dict:
+#     """
+#     Transform options to a dict.
 
-    Args:
-        log: The options.
+#     Args:
+#         log: The options.
 
-    Returns:
-        Options dict.
-    """
-    opts_dict = dict()
-    for k, v in vars(log).items():
-        if v:
-            opts_dict[k] = v
-    return opts_dict
+#     Returns:
+#         Options dict.
+#     """
+#     opts_dict = dict()
+#     for k, v in vars(log).items():
+#         if v:
+#             opts_dict[k] = v
+#     return opts_dict

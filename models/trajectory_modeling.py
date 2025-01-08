@@ -2,7 +2,6 @@
 # About: Modeling the targets' trajectories.
 #        In this streamlined version, we only use a simple FFN for this part.
 import torch.nn as nn
-
 from models.ffn import FFN
 
 

@@ -12,14 +12,12 @@
 # ------------------------------------------------------------------------
 
 import copy
-from typing import Optional, List
+# from typing import Optional, List
 import math
-
 import torch
 import torch.nn.functional as F
-from torch import nn, Tensor
-from torch.nn.init import xavier_uniform_, constant_, uniform_, normal_
-
+from torch import nn
+from torch.nn.init import xavier_uniform_, constant_, normal_
 from utils.utils import inverse_sigmoid
 from models.ops.modules import MSDeformAttn
 

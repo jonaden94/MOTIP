@@ -4,7 +4,7 @@
 import torch.distributed
 import time
 
-from typing import List, Any
+# from typing import List, Any
 from utils.utils import is_distributed, distributed_world_size
 from collections import deque, defaultdict
 

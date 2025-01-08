@@ -1,8 +1,6 @@
 # Copyright (c) Ruopeng Gao. All Rights Reserved.
 # About: 创建一个简单的 FFN Module
-import torch
 import torch.nn as nn
-
 from .utils import get_activation_layer
 
 

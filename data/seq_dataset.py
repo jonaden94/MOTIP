@@ -2,9 +2,7 @@
 # About:
 import os
 import cv2
-
 import torchvision.transforms.functional as F
-
 from torch.utils.data import Dataset
 
 
@@ -13,7 +11,7 @@ class SeqDataset(Dataset):
         """
         Args:
             seq_dir:
-            dataset: DanceTrack or MOT17 or et al.
+            dataset: DanceTrack format or MOT17 format
         """
         image_paths = sorted(os.listdir(os.path.join(seq_dir, "img1")))
         image_paths = [os.path.join(seq_dir, "img1", _) for _ in image_paths if ("jpg" in _) or ("png" in _)]

@@ -11,9 +11,9 @@ from math import floor
 from random import randint
 from PIL import Image
 
-import pandas as pd
-import pycocotools.mask as mask_util
-import numpy as np
+# import pandas as pd
+# import pycocotools.mask as mask_util
+# import numpy as np
 
 
 class MOTDataset(Dataset):

@@ -1,19 +1,17 @@
 # Copyright (c) RuopengGao. All Rights Reserved.
 # About:
-import os
-
+# import os
 import einops
 import torch
 import torch.nn as nn
 import random
 import math
-
 from structures.instances import Instances
 from utils.utils import labels_to_one_hot, pos_to_pos_embed
 from .trajectory_modeling import TrajectoryAugmentation
 from .id_decoder import IDDecoder
 from .ffn import FFN
-from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
+# from utils.box_ops import box_cxcywh_to_xyxy, generalized_box_iou
 
 # import configs.runtime as runtime
 

@@ -18,10 +18,8 @@ from torch import nn
 from torchvision.models._utils import IntermediateLayerGetter
 from torchvision.models import ResNet50_Weights
 from typing import Dict, List
-
 from utils.nested_tensor import NestedTensor
 from utils.utils import is_main_process
-
 from models.deformable_detr.position_encoding import build_position_encoding
 
 

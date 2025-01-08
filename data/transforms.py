@@ -18,7 +18,6 @@ import numpy as np
 import torchvision.transforms as T
 from torchvision.transforms import v2
 import torchvision.transforms.functional as F
-
 from math import floor, ceil
 from utils.box_ops import box_xyxy_to_cxcywh
 

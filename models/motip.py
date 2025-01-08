@@ -3,7 +3,6 @@
 import torch
 import torch.nn as nn
 from scipy.optimize import linear_sum_assignment
-
 from torch.utils.checkpoint import checkpoint
 from .seq_decoder import SeqDecoder
 from .deformable_detr.deformable_detr import build as build_deformable_detr

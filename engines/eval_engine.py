@@ -8,8 +8,8 @@ import torch.nn as nn
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 
-from models import build_model
-from models.utils import load_checkpoint
+# from models import build_model
+# from models.utils import load_checkpoint
 from log.logger import Logger
 from log.log import Metrics
 from utils.utils import is_distributed, distributed_rank, yaml_to_dict, \
@@ -17,49 +17,49 @@ from utils.utils import is_distributed, distributed_rank, yaml_to_dict, \
 from engines.inference_engine import submit_one_seq, get_seq_names
 
 
-def evaluate(config: dict, logger: Logger):
-    """
-    Evaluate a model.
+# def evaluate(config: dict, logger: Logger):
+#     """
+#     Evaluate a model.
 
-    Args:
-        config:
-        logger:
-    Returns:
+#     Args:
+#         config:
+#         logger:
+#     Returns:
 
-    """
-    model_config = yaml_to_dict(path=config["INFERENCE_CONFIG_PATH"])
-    model = build_model(config=model_config)
-    load_checkpoint(model, path=config["INFERENCE_MODEL"])
+#     """
+#     model_config = yaml_to_dict(path=config["INFERENCE_CONFIG_PATH"])
+#     model = build_model(config=model_config)
+#     load_checkpoint(model, path=config["INFERENCE_MODEL"])
 
-    # If DDP:
-    if is_distributed():
-        model = DDP(model, device_ids=[distributed_rank()])
+#     # If DDP:
+#     if is_distributed():
+#         model = DDP(model, device_ids=[distributed_rank()])
 
-    if config["INFERENCE_GROUP"] is not None:
-        eval_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_GROUP"],
-                                        config["INFERENCE_SPLIT"],
-                                        f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
-    else:
-        eval_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], "default", config["INFERENCE_SPLIT"],
-                                        f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
-    eval_metrics = evaluate_one_epoch(
-        config=config,
-        model=model,
-        logger=logger,
-        dataset=config["INFERENCE_DATASET"],
-        data_split=config["INFERENCE_SPLIT"],
-        outputs_dir=eval_outputs_dir,
-        only_detr=config["INFERENCE_ONLY_DETR"]
-    )
-    eval_metrics.sync()
-    logger.save_metrics(
-        metrics=eval_metrics,
-        prompt=f"[Eval Checkpoint '{config['INFERENCE_MODEL']}'] ",
-        fmt="{global_average:.4f}",
-        statistic=None
-    )
+#     if config["INFERENCE_GROUP"] is not None:
+#         eval_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_GROUP"],
+#                                         config["INFERENCE_SPLIT"],
+#                                         f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
+#     else:
+#         eval_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], "default", config["INFERENCE_SPLIT"],
+#                                         f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
+#     eval_metrics = evaluate_one_epoch(
+#         config=config,
+#         model=model,
+#         logger=logger,
+#         dataset=config["INFERENCE_DATASET"],
+#         data_split=config["INFERENCE_SPLIT"],
+#         outputs_dir=eval_outputs_dir,
+#         only_detr=config["INFERENCE_ONLY_DETR"]
+#     )
+#     eval_metrics.sync()
+#     logger.save_metrics(
+#         metrics=eval_metrics,
+#         prompt=f"[Eval Checkpoint '{config['INFERENCE_MODEL']}'] ",
+#         fmt="{global_average:.4f}",
+#         statistic=None
+#     )
 
-    return
+#     return
 
 
 @torch.no_grad()
@@ -102,27 +102,19 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
 
     tracker_dir = os.path.join(outputs_dir, "tracker")
     dataset_dir = os.path.join(config["DATA_ROOT"], dataset)
-    if dataset in ["DanceTrack", "SportsMOT", "PigTrack"]:
-        gt_dir = os.path.join(dataset_dir, data_split)
-    elif dataset in ["MOT17_SPLIT", "MOT15", "MOT15_V2", "MOT17"]:
-        gt_dir = os.path.join(dataset_dir, data_split)
-    else:
-        raise NotImplementedError(f"Do not support to find the gt_dir for dataset '{dataset}'.")
+    gt_dir = os.path.join(dataset_dir, data_split)
 
     if is_distributed():
         torch.distributed.barrier()
 
     if is_main_process():
         # Need to eval the submit tracker:
-        if dataset == "DanceTrack" or dataset == "SportsMOT" or dataset == "PigTrack":
-            os.system(f"python3 TrackEval/scripts/run_mot_challenge.py --SPLIT_TO_EVAL {data_split}  "
-                      f"--METRICS HOTA CLEAR Identity  --GT_FOLDER {gt_dir} "
-                      f"--SEQMAP_FILE {os.path.join(dataset_dir, f'{data_split}_seqmap.txt')} "
-                      f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
-                      f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
-                      f"--TRACKERS_FOLDER {tracker_dir}")
-        else:
-            raise NotImplementedError(f"Do not support to eval the results for dataset '{dataset}'.")
+        os.system(f"python3 TrackEval/scripts/run_mot_challenge.py --SPLIT_TO_EVAL {data_split}  "
+                    f"--METRICS HOTA CLEAR Identity  --GT_FOLDER {gt_dir} "
+                    f"--SEQMAP_FILE {os.path.join(dataset_dir, f'{data_split}_seqmap.txt')} "
+                    f"--SKIP_SPLIT_FOL True --TRACKERS_TO_EVAL '' --TRACKER_SUB_FOLDER ''  --USE_PARALLEL True "
+                    f"--NUM_PARALLEL_CORES 8 --PLOT_CURVES False "
+                    f"--TRACKERS_FOLDER {tracker_dir}")
 
     if is_distributed():
         torch.distributed.barrier()

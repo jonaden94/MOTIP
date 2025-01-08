@@ -12,12 +12,10 @@ This file provides the definition of the convolutional heads used to predict mas
 """
 import io
 from collections import defaultdict
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
-
 import utils.box_ops as box_ops
 from utils.utils import interpolate
 from utils.nested_tensor import NestedTensor, tensor_list_to_nested_tensor

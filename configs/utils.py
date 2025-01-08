@@ -69,31 +69,31 @@ def update_config(config: dict, option: argparse.Namespace) -> dict:
     return config
 
 
-def is_unique(config: dict, keys_set: set = None) -> [bool, set]:
-    """
-    Check whether the keys in config are unique.
+# def is_unique(config: dict, keys_set: set = None) -> [bool, set]:
+#     """
+#     Check whether the keys in config are unique.
 
-    Args:
-        config: Config dict.
-        keys_set: Current keys set.
+#     Args:
+#         config: Config dict.
+#         keys_set: Current keys set.
 
-    Returns:
-        [Whether the keys are unique, Current keys set]
-    """
-    if keys_set is None:
-        keys_set = set()
+#     Returns:
+#         [Whether the keys are unique, Current keys set]
+#     """
+#     if keys_set is None:
+#         keys_set = set()
 
-    for k in config.keys():
-        if k in keys_set:
-            return False, keys_set
-        else:
-            keys_set.add(k)
-        if isinstance(config[k], dict):
-            hit, keys_set = is_unique(config[k], keys_set=keys_set)
-            if hit is False:
-                return False, keys_set
+#     for k in config.keys():
+#         if k in keys_set:
+#             return False, keys_set
+#         else:
+#             keys_set.add(k)
+#         if isinstance(config[k], dict):
+#             hit, keys_set = is_unique(config[k], keys_set=keys_set)
+#             if hit is False:
+#                 return False, keys_set
 
-    return True, keys_set
+#     return True, keys_set
 
 
 def load_super_config(config: dict, super_config_path: str | None):

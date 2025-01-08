@@ -3,11 +3,10 @@
 import einops
 import torch
 import torch.nn as nn
-
 from torch.utils.checkpoint import checkpoint
 from models.ffn import FFN
 from models.utils import get_clones
-from utils.utils import labels_to_one_hot, pos_to_pos_embed
+from utils.utils import labels_to_one_hot
 
 
 class IDDecoder(nn.Module):
