@@ -143,7 +143,6 @@ def train(config: dict, logger: Logger):
                 eval_metrics = evaluate_one_epoch(
                     config=config,
                     model=model,
-                    logger=logger,
                     dataset=config["INFERENCE_DATASET"],
                     data_split=config["INFERENCE_SPLIT"],
                     outputs_dir=os.path.join(config["OUTPUTS_DIR"], config["MODE"],

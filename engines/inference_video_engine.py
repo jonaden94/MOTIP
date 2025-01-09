@@ -1,14 +1,9 @@
 import os
 import cv2
-import json
 import numpy as np
-from tqdm import tqdm
-
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
-
-from torch.utils.data import DataLoader
 from utils.nested_tensor import tensor_list_to_nested_tensor
 from models.utils import get_model
 from utils.box_ops import box_cxcywh_to_xyxy
@@ -16,7 +11,7 @@ from collections import deque
 from structures.instances import Instances
 from structures.ordered_set import OrderedSet
 from log.logger import Logger
-from utils.utils import yaml_to_dict, is_distributed, distributed_rank
+from utils.utils import yaml_to_dict, is_distributed, distributed_rank, distributed_world_size
 from models import build_model
 from models.utils import load_checkpoint
 import torchvision.transforms.functional as F
@@ -25,11 +20,6 @@ from torch.utils.data import Dataset
 
 class VideoDataset(Dataset):
     def __init__(self, video_path: str, height: int = 800, width: int = 1333):
-        """
-        Args:
-            seq_dir:
-            dataset: DanceTrack or MOT17 format
-        """
         video_path = video_path
         self.video_cap = cv2.VideoCapture(video_path)
         self.frame_count = int(self.video_cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -40,12 +30,6 @@ class VideoDataset(Dataset):
         return
 
     def load(self, ):
-        """
-        Args:
-            path:
-        Returns:
-        """
-        # label_path = path.replace('images', 'labels_with_ids').replace('.png', '.txt').replace('.jpg', '.txt')
         ret, image = self.video_cap.read()
         assert image is not None
         return image
@@ -61,7 +45,6 @@ class VideoDataset(Dataset):
         target_w = int(w * scale)
         image = cv2.resize(image, (target_w, target_h))
         image = F.normalize(F.to_tensor(image), self.mean, self.std)
-        # image = np.transpose(image, [2, 0, 1])
         image = image.unsqueeze(0)
         return image, ori_image
 
@@ -73,7 +56,7 @@ class VideoDataset(Dataset):
         return self.frame_count
 
 
-def video_info(video_path, config: dict, logger: Logger):
+def video_info(config: dict, logger: Logger):
     """
     Submit a model for a specific dataset.
     :param config:
@@ -90,35 +73,36 @@ def video_info(video_path, config: dict, logger: Logger):
     if is_distributed():
         model = DDP(model, device_ids=[distributed_rank()])
 
-    if config["INFERENCE_GROUP"] is not None:
-        submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_GROUP"],
-                                          config["INFERENCE_SPLIT"],
-                                          f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
-    else:
-        submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], "default",
-                                          config["INFERENCE_SPLIT"],
-                                          f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
+    submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"],
+                                        config["VIDEO_DIR"].split("/")[-1],
+                                        f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
 
     model.eval()
+    
+    all_video_names = sorted(os.listdir(config["VIDEO_DIR"]))
+    video_names = [all_video_names[_] for _ in range(len(all_video_names))
+                 if _ % distributed_world_size() == distributed_rank()]
 
-    if os.path.exists(video_path):
-        video_info_one(
-            model=model, video_path=video_path,
-            only_detr=config["INFERENCE_ONLY_DETR"], max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
-            outputs_dir=submit_outputs_dir,
-            det_thresh=config["DET_THRESH"],
-            newborn_thresh=config["DET_THRESH"] if "NEWBORN_THRESH" not in config else config["NEWBORN_THRESH"],
-            area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
-            image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
-            draw_res=True
-        )
+    if len(video_names) > 0:
+        for video_name in video_names:
+            video_path = os.path.join(config["VIDEO_DIR"], video_name)
+            video_info_one(
+                model=model, video_path=video_path,
+                only_detr=config["INFERENCE_ONLY_DETR"], max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
+                outputs_dir=submit_outputs_dir,
+                det_thresh=config["DET_THRESH"],
+                newborn_thresh=config["DET_THRESH"] if "NEWBORN_THRESH" not in config else config["NEWBORN_THRESH"],
+                area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
+                image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
+                draw_res=True
+            )
 
     if is_distributed():
         torch.distributed.barrier()
 
-    logger.print(log=f"Finish submit process for model '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are write to '{os.path.join(submit_outputs_dir, 'tracker')}/.'")
+    logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' for videos in '{config['VIDEO_DIR'].split('/')[-1]}'. Outputs are written to '{os.path.join(submit_outputs_dir, 'results')}/.")
     logger.save_log_to_file(
-        log=f"Finish submit process for model '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are write to '{os.path.join(submit_outputs_dir, 'tracker')}/.'",
+        log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' for videos in '{config['VIDEO_DIR'].split('/')[-1]}'. Outputs are written to '{os.path.join(submit_outputs_dir, 'results')}/.",
         filename="log.txt",
         mode="a"
     )
@@ -135,18 +119,20 @@ def video_info_one(
             fake_submit: bool = False,
             draw_res: bool = False
         ):
-    save_res_dir = os.path.join(outputs_dir, "tracker")
+    save_res_dir = os.path.join(outputs_dir, "results")
+    viz_dir = os.path.join(save_res_dir, 'vizualization')
+    tracker_dir = os.path.join(save_res_dir, 'tracker')
     os.makedirs(save_res_dir, exist_ok=True)
+    os.makedirs(viz_dir, exist_ok=True)
+    os.makedirs(tracker_dir, exist_ok=True)
     video_name = os.path.split(video_path)[-1].rsplit('.', 1)[0]
 
     if draw_res:
         video_w = None
         colors = (np.random.rand(32, 3) * 255).astype(dtype=np.int32)
-        save_video_path = os.path.join(save_res_dir, video_name+'.mp4')
+        save_video_path = os.path.join(viz_dir, video_name+'.mp4')
 
     video_dataset = VideoDataset(video_path, width=image_max_size)
-    # video_dataloader = DataLoader(video_dataset, batch_size=1, num_workers=4, shuffle=False)
-    # seq_name = seq_dir.split("/")[-1]
     device = model.device
     current_id = 0
     ids_to_results = {}
@@ -158,12 +144,8 @@ def video_info_one(
     else:
         trajectory_history = deque(maxlen=max_temporal_length)
 
-    if fake_submit:
-        print(f"[Fake] Start >> Submit seq {video_name.split('/')[-1]}, {len(video_dataset)} frames ......")
-    else:
-        print(f"Start >> Submit seq {video_name.split('/')[-1]}, {len(video_dataset)} frames ......")
-
-    for i in tqdm(range(video_dataset.__len__())):
+    print(f"Start >> Inference {video_name.split('/')[-1]}.")
+    for i in range(video_dataset.__len__()):
         image, ori_image = video_dataset.__getitem__(i)
         ori_h, ori_w = ori_image.shape[0], ori_image.shape[1]
         frame = tensor_list_to_nested_tensor([image[0]]).to(device)
@@ -239,7 +221,7 @@ def video_info_one(
         # Output to tracker file:
         if fake_submit is False:
             # Write the outputs to the tracker file:
-            result_file_path = os.path.join(save_res_dir, f"{video_name}.txt")
+            result_file_path = os.path.join(tracker_dir, f"{video_name}.txt")
             with open(result_file_path, "a") as file:
                 assert len(id_results) == len(box_results), f"Boxes and IDs should in the same length, " \
                                                             f"but get len(IDs)={len(id_results)} and " \
@@ -267,7 +249,7 @@ def video_info_one(
                         video_w.write(ori_image)
 
     if fake_submit:
-        print(f"[Fake] Finish >> Submit seq {video_name.split('/')[-1]}. ")
+        print(f"[Fake] Finish >> Inference {video_name.split('/')[-1]}. ")
     else:
-        print(f"Finish >> Submit seq {video_name.split('/')[-1]}. ")
+        print(f"Finish >> Inference {video_name.split('/')[-1]}. ")
     return

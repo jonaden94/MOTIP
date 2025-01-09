@@ -116,7 +116,7 @@ def parse_option():
     parser.add_argument("--detr-cls-loss-coef", type=float)
     
     # video infer
-    parser.add_argument("--video_path", type=str, default='')
+    parser.add_argument("--video-dir", type=str, default='')
 
     return parser.parse_args()
 

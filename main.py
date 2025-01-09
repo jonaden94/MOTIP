@@ -6,12 +6,11 @@ from utils.utils import (yaml_to_dict, is_main_process, set_seed,
 from log.logger import Logger
 from configs.utils import update_config, load_super_config
 from engines.train_engine import train
-from engines.eval_engine import evaluate # TODO REMOVE AS SOON AS IMPLEMENTED INDEPENDENTLY
 from engines.inference_engine import submit
 from engines.inference_video_engine import video_info
 
 
-def main(config: dict, video_path=None):
+def main(config: dict):
     """
     Main function.
 
@@ -28,8 +27,10 @@ def main(config: dict, video_path=None):
     config["OUTPUTS_DIR"] = os.path.join("./outputs", config["EXP_NAME"])
     if config["MODE"] == "train":
         log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"])
-    elif config["MODE"] == "inference" or config["MODE"] == "video_inference":
-        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_SPLIT"])
+    elif config["MODE"] == "inference":
+        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_SPLIT"], config["INFERENCE_MODEL"].split("/")[-1][:-4])
+    elif config["MODE"] == "video_inference":
+        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["VIDEO_DIR"].split("/")[-1], config["INFERENCE_MODEL"].split("/")[-1][:-4])
     else:
         raise NotImplementedError(f"Do not support running mode '{config['MODE']}' yet.")
 
@@ -58,11 +59,7 @@ def main(config: dict, video_path=None):
     elif config["MODE"] == "inference":
         submit(config=config, logger=logger)
     elif config["MODE"] == "video_inference":
-        assert video_path is not None, "Supply path to video file!"
-        video_info(video_path, config=config, logger=logger)
-    # TODO REMOVE THIS OPTION AND MAKE A METHOD INDEPENDENT EVAL SCRIPT.
-    # elif config["MODE"] == "eval":
-    #     evaluate(config=config, logger=logger)
+        video_info(config=config, logger=logger)
     return
 
 
@@ -76,4 +73,4 @@ if __name__ == '__main__':
         cfg = load_super_config(cfg, cfg["SUPER_CONFIG_PATH"])
 
     # Then, update configs by runtime options, using the different runtime setting.
-    main(config=update_config(config=cfg, option=opt), video_path=opt.video_path)
+    main(config=update_config(config=cfg, option=opt))

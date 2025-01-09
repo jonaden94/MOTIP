@@ -45,7 +45,6 @@ from engines.inference_engine import submit_one_seq, get_seq_names
 #     eval_metrics = evaluate_one_epoch(
 #         config=config,
 #         model=model,
-#         logger=logger,
 #         dataset=config["INFERENCE_DATASET"],
 #         data_split=config["INFERENCE_SPLIT"],
 #         outputs_dir=eval_outputs_dir,
@@ -63,8 +62,7 @@ from engines.inference_engine import submit_one_seq, get_seq_names
 
 
 @torch.no_grad()
-def evaluate_one_epoch(config: dict, model: nn.Module,
-                       logger: Logger, dataset: str, data_split: str,
+def evaluate_one_epoch(config: dict, model: nn.Module, dataset: str, data_split: str,
                        outputs_dir: str, only_detr: bool = False):
     model.eval()
     metrics = Metrics()
@@ -76,7 +74,7 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
     if len(seq_names) > 0:
         for seq in seq_names:
             submit_one_seq(
-                model=model, dataset=dataset,
+                model=model,
                 seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, seq),
                 only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
                 outputs_dir=outputs_dir,
@@ -88,7 +86,7 @@ def evaluate_one_epoch(config: dict, model: nn.Module,
             )
     else:
         submit_one_seq(
-            model=model, dataset=dataset,
+            model=model,
             seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, all_seq_names[0]),
             only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
             outputs_dir=outputs_dir,

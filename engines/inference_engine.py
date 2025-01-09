@@ -1,12 +1,9 @@
 # Copyright (c) RuopengGao. All Rights Reserved.
 # About:
 import os
-import json
-
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
-
 from torch.utils.data import DataLoader
 from data.seq_dataset import SeqDataset
 from utils.nested_tensor import tensor_list_to_nested_tensor
@@ -38,29 +35,23 @@ def submit(config: dict, logger: Logger):
     if is_distributed():
         model = DDP(model, device_ids=[distributed_rank()])
 
-    if config["INFERENCE_GROUP"] is not None:
-        submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_GROUP"],
-                                          config["INFERENCE_SPLIT"],
-                                          f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
-    else:
-        submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], "default",
-                                          config["INFERENCE_SPLIT"],
-                                          f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
+    submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"],
+                                        config["INFERENCE_SPLIT"],
+                                        f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
 
     # 需要调度整个 submit 流程
     submit_one_epoch(
         config=config,
         model=model,
-        logger=logger,
         dataset=config["INFERENCE_DATASET"],
         data_split=config["INFERENCE_SPLIT"],
         outputs_dir=submit_outputs_dir,
         only_detr=config["INFERENCE_ONLY_DETR"]
     )
 
-    logger.print(log=f"Finish submit process for model '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are write to '{os.path.join(submit_outputs_dir, 'tracker')}/.'")
+    logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir, 'tracker')}/.")
     logger.save_log_to_file(
-        log=f"Finish submit process for model '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are write to '{os.path.join(submit_outputs_dir, 'tracker')}/.'",
+        log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir, 'tracker')}/.",
         filename="log.txt",
         mode="a"
     )
@@ -70,7 +61,7 @@ def submit(config: dict, logger: Logger):
 
 @torch.no_grad()
 def submit_one_epoch(config: dict, model: nn.Module,
-                     logger: Logger, dataset: str, data_split: str,
+                     dataset: str, data_split: str,
                      outputs_dir: str, only_detr: bool = False):
     model.eval()
 
@@ -81,7 +72,7 @@ def submit_one_epoch(config: dict, model: nn.Module,
     if len(seq_names) > 0:
         for seq in seq_names:
             submit_one_seq(
-                model=model, dataset=dataset,
+                model=model,
                 seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, seq),
                 only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
                 outputs_dir=outputs_dir,
@@ -93,7 +84,7 @@ def submit_one_epoch(config: dict, model: nn.Module,
             )
     else:   # fake submit, will not write any outputs.
         submit_one_seq(
-            model=model, dataset=dataset,
+            model=model,
             seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, all_seq_names[0]),
             only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
             outputs_dir=outputs_dir,
@@ -113,7 +104,7 @@ def submit_one_epoch(config: dict, model: nn.Module,
 
 @torch.no_grad()
 def submit_one_seq(
-            model: nn.Module, dataset: str, seq_dir: str, outputs_dir: str,
+            model: nn.Module, seq_dir: str, outputs_dir: str,
             only_detr: bool, max_temporal_length: int = 0,
             det_thresh: float = 0.5, newborn_thresh: float = 0.5, area_thresh: float = 100, id_thresh: float = 0.1,
             image_max_size: int = 1333,
@@ -121,7 +112,7 @@ def submit_one_seq(
             inference_ensemble: int = 0,
         ):
     os.makedirs(os.path.join(outputs_dir, "tracker"), exist_ok=True)
-    seq_dataset = SeqDataset(seq_dir=seq_dir, dataset=dataset, width=image_max_size)
+    seq_dataset = SeqDataset(seq_dir=seq_dir, width=image_max_size)
     seq_dataloader = DataLoader(seq_dataset, batch_size=1, num_workers=4, shuffle=False)
     seq_name = os.path.split(seq_dir)[-1]
     device = model.device

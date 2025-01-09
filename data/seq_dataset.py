@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 
 
 class SeqDataset(Dataset):
-    def __init__(self, seq_dir: str, dataset: str, height: int = 800, width: int = 1333):
+    def __init__(self, seq_dir: str, height: int = 800, width: int = 1333):
         """
         Args:
             seq_dir:

@@ -1,6 +1,6 @@
 SUPER_CONFIG_PATH: ~
 CONFIG: ~
-MODE: ~ # "train" or "eval" or "submit", for the main.py script.
+MODE: ~ # "train" or "inference" or "video_inference", for the main.py script.
 
 # System config, like CPU/GPU
 NUM_CPU_PER_GPU: # number of CPU per GPU
@@ -20,11 +20,13 @@ DATASET_SPLITS: [train] # and corresponding splits, like: [train, val]
 DATASET_SEQMAP_NAMES: [~]
 DATASET_TYPES: ['track']
 DATA_ROOT: ./datasets/data # datasets root
+
 # Sampling settings: (all are lists of same length that determine how frames are sampled for training)
 SAMPLE_STEPS: [0] # list of epoch numbers (in descending order). the corresponding values from SAMPLE_LENGTHS, SAMPLE_MODES and SAMPLE_INTERVALS are then taken when specific epoch is reached
 SAMPLE_LENGTHS: [40] # number of consecutive frames per iteration
 SAMPLE_MODES: [random_interval] # I guess this is for random sampling
 SAMPLE_INTERVALS: [4] # sample every nth frame. In the paper it says that the sampling interval ranges randomly from 1 to 4.
+
 # Data augmentation setting:
 AUG_RESIZE_SCALES: [480, 512, 544, 576, 608, 640, 672, 704, 736, 768, 800]
 AUG_MAX_SIZE: 1333
@@ -45,9 +47,11 @@ ID_DECODER_LAYERS: 6
 SEQ_HIDDEN_DIM: 256
 SEQ_DIM_FEEDFORWARD: 512
 SEQ_NUM_HEADS: 8
+
 # Backbone:
 BACKBONE: resnet50
 DILATION: False
+
 # About DETR-Framework
 DETR_NUM_QUERIES: 300
 DETR_NUM_FEATURE_LEVELS: 4
@@ -76,12 +80,15 @@ TRAIN_STAGE: joint
 SEED: 42
 USE_DISTRIBUTED: False
 DETR_NUM_TRAIN_FRAMES: 4
+
 # Below two parameters are for memory optimized DETR training:
 DETR_CHECKPOINT_FRAMES: 5
 SEQ_DECODER_CHECKPOINT: False
+
 # Training Augmentation:
 TRAJ_DROP_RATIO: 0.5
 TRAJ_SWITCH_RATIO: 0.3
+
 # Training Scheduler:
 EPOCHS: 14
 LR: 1.0e-4
@@ -107,9 +114,11 @@ INFERENCE_MODEL:
 INFERENCE_ONLY_DETR: False
 INFERENCE_DATASET: DanceTrack
 INFERENCE_SPLIT: val
-INFERENCE_CONFIG_PATH:          # mostly, you don't need to set this parameter. See submit_engine.py L34 for more details.
+INFERENCE_CONFIG_PATH: # mostly, you don't need to set this parameter. See submit_engine.py L34 for more details.
 INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
 INFERENCE_ENSEMBLE: 0
+VIDEO_DIR: ~ # provide in case of video inference
+
 # Thresholds:
 ID_THRESH: 0.2
 DET_THRESH: 0.3 # only consider detections whose confidence exceeds this threshold
