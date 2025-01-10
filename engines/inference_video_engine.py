@@ -56,7 +56,7 @@ class VideoDataset(Dataset):
         return self.frame_count
 
 
-def video_info(config: dict, logger: Logger):
+def video_inference(config: dict, logger: Logger):
     """
     Submit a model for a specific dataset.
     :param config:
@@ -86,7 +86,7 @@ def video_info(config: dict, logger: Logger):
     if len(video_names) > 0:
         for video_name in video_names:
             video_path = os.path.join(config["VIDEO_DIR"], video_name)
-            video_info_one(
+            video_inference_one(
                 model=model, video_path=video_path,
                 only_detr=config["INFERENCE_ONLY_DETR"], max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
                 outputs_dir=submit_outputs_dir,
@@ -111,7 +111,7 @@ def video_info(config: dict, logger: Logger):
 
 
 @torch.no_grad()
-def video_info_one(
+def video_inference_one(
             model: nn.Module, video_path: str, outputs_dir: str,
             only_detr: bool, max_temporal_length: int = 0,
             det_thresh: float = 0.5, newborn_thresh: float = 0.5, area_thresh: float = 100, id_thresh: float = 0.1,
@@ -120,7 +120,7 @@ def video_info_one(
             draw_res: bool = False
         ):
     save_res_dir = os.path.join(outputs_dir, "results")
-    viz_dir = os.path.join(save_res_dir, 'vizualization')
+    viz_dir = os.path.join(save_res_dir, 'visualization')
     tracker_dir = os.path.join(save_res_dir, 'tracker')
     os.makedirs(save_res_dir, exist_ok=True)
     os.makedirs(viz_dir, exist_ok=True)

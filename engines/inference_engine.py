@@ -13,7 +13,7 @@ from collections import deque
 from structures.instances import Instances
 from structures.ordered_set import OrderedSet
 from log.logger import Logger
-from utils.utils import yaml_to_dict, is_distributed, distributed_rank, distributed_world_size
+from utils.utils import is_distributed, distributed_rank, distributed_world_size
 from models import build_model
 from models.utils import load_checkpoint
 
@@ -25,11 +25,7 @@ def submit(config: dict, logger: Logger):
     :param logger:
     :return:
     """
-    if config["INFERENCE_CONFIG_PATH"] is None:
-        model_config = config
-    else:
-        model_config = yaml_to_dict(path=config["INFERENCE_CONFIG_PATH"])
-    model = build_model(config=model_config)
+    model = build_model(config)
     load_checkpoint(model, path=config["INFERENCE_MODEL"])
 
     if is_distributed():

@@ -7,7 +7,7 @@ from log.logger import Logger
 from configs.utils import update_config, load_super_config
 from engines.train_engine import train
 from engines.inference_engine import submit
-from engines.inference_video_engine import video_info
+from engines.inference_video_engine import video_inference
 
 
 def main(config: dict):
@@ -32,7 +32,7 @@ def main(config: dict):
     elif config["MODE"] == "video_inference":
         log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["VIDEO_DIR"].split("/")[-1], config["INFERENCE_MODEL"].split("/")[-1][:-4])
     else:
-        raise NotImplementedError(f"Do not support running mode '{config['MODE']}' yet.")
+        raise NotImplementedError(f"Do not support running mode '{config['MODE']}'.")
 
     logger = Logger(
         logdir=log_dir,
@@ -59,7 +59,7 @@ def main(config: dict):
     elif config["MODE"] == "inference":
         submit(config=config, logger=logger)
     elif config["MODE"] == "video_inference":
-        video_info(config=config, logger=logger)
+        video_inference(config=config, logger=logger)
     return
 
 

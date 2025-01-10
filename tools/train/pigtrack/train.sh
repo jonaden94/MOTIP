@@ -1,12 +1,15 @@
 #!/bin/bash
 #SBATCH -p grete
-#SBATCH -G A100:4
-
-#SBATCH -t 2-00:00:00
+#SBATCH --nodes=2                # node count
+#SBATCH --gpus-per-node=A100:4   # total number of gpus per node
+#SBATCH --ntasks-per-node=4      # total number of tasks per node
+#SBATCH --cpus-per-task=16        # cpu-cores per task (>1 if multi-threaded tasks)
 #SBATCH -A nib00034
 #SBATCH -C inet
 #SBATCH -o /user/henrich1/u12041/output/job-%J.out
 #SBATCH --mem=256G
+#SBATCH -t 0-48:00:00
+##SBATCH --exclude=ggpu150,ggpu151,ggpu155,ggpu156
 ##SBATCH --mail-type=begin            # send mail when job begins
 ##SBATCH --mail-type=end              # send mail when job ends
 ##SBATCH --mail-user=jonathan.henrich@uni-goettingen.de

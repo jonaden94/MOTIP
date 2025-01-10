@@ -1,11 +1,11 @@
 #!/bin/bash
 #SBATCH -p grete
-##SBATCH --nodes=2                # node count
-##SBATCH --gpus-per-node=A100:4   # total number of gpus per node
-##SBATCH --ntasks-per-node=4      # total number of tasks per node
-#SBATCH --nodes=1                # node count
-#SBATCH --gpus-per-node=A100:1   # total number of gpus per node
-#SBATCH --ntasks-per-node=1      # total number of tasks per node
+#SBATCH --nodes=2                # node count
+#SBATCH --gpus-per-node=A100:4   # total number of gpus per node
+#SBATCH --ntasks-per-node=4      # total number of tasks per node
+##SBATCH --nodes=1                # node count
+##SBATCH --gpus-per-node=A100:1   # total number of gpus per node
+##SBATCH --ntasks-per-node=1      # total number of tasks per node
 #SBATCH --cpus-per-task=16        # cpu-cores per task (>1 if multi-threaded tasks)
 #SBATCH -A nib00034
 #SBATCH -C inet

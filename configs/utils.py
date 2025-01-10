@@ -7,34 +7,34 @@ import argparse
 from utils.utils import yaml_to_dict
 
 
-def update_config_with_kv(config: dict, k: str, v) -> [bool, dict]:
-    """
-    Update config with a pair of K and V from options.
+# def update_config_with_kv(config: dict, k: str, v) -> [bool, dict]:
+#     """
+#     Update config with a pair of K and V from options.
 
-    Args:
-        config: Current config.
-        k: A key from options.
-        v: A value from options.
+#     Args:
+#         config: Current config.
+#         k: A key from options.
+#         v: A value from options.
 
-    Returns:
-        [New config dict, Hit or Not]
-    """
-    hit = False
-    for config_k in config.keys():
-        if isinstance(config[config_k], dict):
-            hit, config[config_k] = update_config_with_kv(config=config[config_k], k=k, v=v)
-            if hit:
-                break
-        elif config_k == k.upper():
-            if v == "True":
-                config[config_k] = True
-            elif v == "False":
-                config[config_k] = False
-            else:
-                config[config_k] = v
-            hit = True
-            break
-    return hit, config
+#     Returns:
+#         [New config dict, Hit or Not]
+#     """
+#     hit = False
+#     for config_k in config.keys():
+#         if isinstance(config[config_k], dict):
+#             hit, config[config_k] = update_config_with_kv(config=config[config_k], k=k, v=v)
+#             if hit:
+#                 break
+#         elif config_k == k.upper():
+#             if v == "True":
+#                 config[config_k] = True
+#             elif v == "False":
+#                 config[config_k] = False
+#             else:
+#                 config[config_k] = v
+#             hit = True
+#             break
+#     return hit, config
 
 
 def update_config(config: dict, option: argparse.Namespace) -> dict:
