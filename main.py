@@ -26,16 +26,16 @@ def main(config: dict):
     # set directory where to save outputs
     config["OUTPUTS_DIR"] = os.path.join("./outputs", config["EXP_NAME"])
     if config["MODE"] == "train":
-        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"])
+        config["LOG_DIR"] = os.path.join(config["OUTPUTS_DIR"], config["MODE"])
     elif config["MODE"] == "inference":
-        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_SPLIT"], config["INFERENCE_MODEL"].split("/")[-1][:-4])
+        config["LOG_DIR"] = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["INFERENCE_SPLIT"], config["INFERENCE_MODEL"].split("/")[-1][:-4])
     elif config["MODE"] == "video_inference":
-        log_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["VIDEO_DIR"].split("/")[-1], config["INFERENCE_MODEL"].split("/")[-1][:-4])
+        config["LOG_DIR"] = os.path.join(config["OUTPUTS_DIR"], config["MODE"], config["VIDEO_DIR"].split("/")[-1], config["INFERENCE_MODEL"].split("/")[-1][:-4])
     else:
         raise NotImplementedError(f"Do not support running mode '{config['MODE']}'.")
 
     logger = Logger(
-        logdir=log_dir,
+        logdir=config["LOG_DIR"],
         use_tensorboard=config["USE_TENSORBOARD"],
         use_wandb=config["USE_WANDB"],
         only_main=True,

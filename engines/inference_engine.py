@@ -16,6 +16,8 @@ from log.logger import Logger
 from utils.utils import is_distributed, distributed_rank, distributed_world_size
 from models import build_model
 from models.utils import load_checkpoint
+import cv2
+import numpy as np
 
 
 def submit(config: dict, logger: Logger):
@@ -31,9 +33,7 @@ def submit(config: dict, logger: Logger):
     if is_distributed():
         model = DDP(model, device_ids=[distributed_rank()])
 
-    submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"],
-                                        config["INFERENCE_SPLIT"],
-                                        f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
+    submit_outputs_dir = os.path.join(config["LOG_DIR"], 'results')
 
     # 需要调度整个 submit 流程
     submit_one_epoch(
@@ -45,9 +45,9 @@ def submit(config: dict, logger: Logger):
         only_detr=config["INFERENCE_ONLY_DETR"]
     )
 
-    logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir, 'tracker')}/.")
+    logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir)}/.")
     logger.save_log_to_file(
-        log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir, 'tracker')}/.",
+        log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir)}/.",
         filename="log.txt",
         mode="a"
     )
@@ -60,7 +60,6 @@ def submit_one_epoch(config: dict, model: nn.Module,
                      dataset: str, data_split: str,
                      outputs_dir: str, only_detr: bool = False):
     model.eval()
-
     all_seq_names = get_seq_names(data_root=config["DATA_ROOT"], dataset=dataset, data_split=data_split)
     seq_names = [all_seq_names[_] for _ in range(len(all_seq_names))
                  if _ % distributed_world_size() == distributed_rank()]
@@ -77,6 +76,7 @@ def submit_one_epoch(config: dict, model: nn.Module,
                 area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
                 image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
                 inference_ensemble=config["INFERENCE_ENSEMBLE"] if "INFERENCE_ENSEMBLE" in config else 0,
+                draw_res=config["VISUALIZE_INFERENCE"]
             )
     else:   # fake submit, will not write any outputs.
         submit_one_seq(
@@ -90,6 +90,7 @@ def submit_one_epoch(config: dict, model: nn.Module,
             image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
             fake_submit=True,
             inference_ensemble=config["INFERENCE_ENSEMBLE"] if "INFERENCE_ENSEMBLE" in config else 0,
+            draw_res=config["VISUALIZE_INFERENCE"]
         )
 
     if is_distributed():
@@ -106,8 +107,18 @@ def submit_one_seq(
             image_max_size: int = 1333,
             fake_submit: bool = False,
             inference_ensemble: int = 0,
+            draw_res: bool = False
         ):
-    os.makedirs(os.path.join(outputs_dir, "tracker"), exist_ok=True)
+    tracker_dir = os.path.join(outputs_dir, "tracker")
+    visualization_dir = os.path.join(outputs_dir, "visualization")
+    os.makedirs(tracker_dir, exist_ok=True)
+    os.makedirs(visualization_dir, exist_ok=True)
+    
+    if draw_res:
+        video_w = None
+        colors = (np.random.rand(32, 3) * 255).astype(dtype=np.int32)
+        save_video_path = os.path.join(visualization_dir, f"{os.path.split(seq_dir)[-1]}.mp4")
+    
     seq_dataset = SeqDataset(seq_dir=seq_dir, width=image_max_size)
     seq_dataloader = DataLoader(seq_dataset, batch_size=1, num_workers=4, shuffle=False)
     seq_name = os.path.split(seq_dir)[-1]
@@ -203,7 +214,7 @@ def submit_one_seq(
         # Output to tracker file:
         if fake_submit is False:
             # Write the outputs to the tracker file:
-            result_file_path = os.path.join(outputs_dir, "tracker", f"{seq_name}.txt")
+            result_file_path = os.path.join(tracker_dir, f"{seq_name}.txt")
             with open(result_file_path, "a") as file:
                 assert len(id_results) == len(box_results), f"Boxes and IDs should in the same length, " \
                                                             f"but get len(IDs)={len(id_results)} and " \
@@ -215,6 +226,22 @@ def submit_one_seq(
                                     f"{obj_id}," \
                                     f"{x1},{y1},{x2 - x1},{y2 - y1},1,-1,-1,-1\n"
                     file.write(result_line)
+                    if draw_res:
+                        color = tuple(colors[obj_id%32].tolist())
+                        cv2.rectangle(ori_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+                        cv2.putText(ori_image, str(obj_id), (int(x1), int(y1)), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, color, 2, cv2.LINE_AA)
+                if draw_res:
+                    if video_w is None:
+                        # fourcc = cv2.VideoWriter_fourcc(*'avc1')
+                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                        size = (ori_w, ori_h)
+                        fps = 25
+                        video_w = cv2.VideoWriter(save_video_path, fourcc, fps, size)
+                        video_w.write(ori_image)
+                    else:
+                        video_w.write(ori_image)
+    if video_w is not None:
+        video_w.release()
     if fake_submit:
         print(f"[Fake] Finish >> Submit seq {seq_name.split('/')[-1]}. ")
     else:

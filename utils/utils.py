@@ -117,6 +117,7 @@ def parse_option():
     
     # video infer
     parser.add_argument("--video-dir", type=str, default='')
+    parser.add_argument("--visualize-inference", type=str, default='')
 
     return parser.parse_args()
 

@@ -63,26 +63,18 @@ def video_inference(config: dict, logger: Logger):
     :param logger:
     :return:
     """
-    if config["INFERENCE_CONFIG_PATH"] is None:
-        model_config = config
-    else:
-        model_config = yaml_to_dict(path=config["INFERENCE_CONFIG_PATH"])
-    model = build_model(config=model_config)
+    model = build_model(config=config)
     load_checkpoint(model, path=config["INFERENCE_MODEL"])
 
     if is_distributed():
         model = DDP(model, device_ids=[distributed_rank()])
 
-    submit_outputs_dir = os.path.join(config["OUTPUTS_DIR"], config["MODE"],
-                                        config["VIDEO_DIR"].split("/")[-1],
-                                        f'{config["INFERENCE_MODEL"].split("/")[-1][:-4]}')
+    submit_outputs_dir = os.path.join(config["LOG_DIR"], 'results')
 
     model.eval()
-    
     all_video_names = sorted(os.listdir(config["VIDEO_DIR"]))
     video_names = [all_video_names[_] for _ in range(len(all_video_names))
                  if _ % distributed_world_size() == distributed_rank()]
-
     if len(video_names) > 0:
         for video_name in video_names:
             video_path = os.path.join(config["VIDEO_DIR"], video_name)
@@ -100,9 +92,9 @@ def video_inference(config: dict, logger: Logger):
     if is_distributed():
         torch.distributed.barrier()
 
-    logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' for videos in '{config['VIDEO_DIR'].split('/')[-1]}'. Outputs are written to '{os.path.join(submit_outputs_dir, 'results')}/.")
+    logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' for videos in '{config['VIDEO_DIR'].split('/')[-1]}'. Outputs are written to '{os.path.join(submit_outputs_dir)}/.")
     logger.save_log_to_file(
-        log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' for videos in '{config['VIDEO_DIR'].split('/')[-1]}'. Outputs are written to '{os.path.join(submit_outputs_dir, 'results')}/.",
+        log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' for videos in '{config['VIDEO_DIR'].split('/')[-1]}'. Outputs are written to '{os.path.join(submit_outputs_dir)}/.",
         filename="log.txt",
         mode="a"
     )
@@ -119,18 +111,16 @@ def video_inference_one(
             fake_submit: bool = False,
             draw_res: bool = False
         ):
-    save_res_dir = os.path.join(outputs_dir, "results")
-    viz_dir = os.path.join(save_res_dir, 'visualization')
-    tracker_dir = os.path.join(save_res_dir, 'tracker')
-    os.makedirs(save_res_dir, exist_ok=True)
-    os.makedirs(viz_dir, exist_ok=True)
+    visualization_dir = os.path.join(outputs_dir, 'visualization')
+    tracker_dir = os.path.join(outputs_dir, 'tracker')
+    os.makedirs(visualization_dir, exist_ok=True)
     os.makedirs(tracker_dir, exist_ok=True)
     video_name = os.path.split(video_path)[-1].rsplit('.', 1)[0]
 
     if draw_res:
         video_w = None
         colors = (np.random.rand(32, 3) * 255).astype(dtype=np.int32)
-        save_video_path = os.path.join(viz_dir, video_name+'.mp4')
+        save_video_path = os.path.join(visualization_dir, video_name+'.mp4')
 
     video_dataset = VideoDataset(video_path, width=image_max_size)
     device = model.device
@@ -247,7 +237,8 @@ def video_inference_one(
                         video_w.write(ori_image)
                     else:
                         video_w.write(ori_image)
-
+    if video_w is not None:
+        video_w.release()
     if fake_submit:
         print(f"[Fake] Finish >> Inference {video_name.split('/')[-1]}. ")
     else:

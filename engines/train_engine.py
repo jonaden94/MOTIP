@@ -145,8 +145,7 @@ def train(config: dict, logger: Logger):
                     model=model,
                     dataset=config["INFERENCE_DATASET"],
                     data_split=config["INFERENCE_SPLIT"],
-                    outputs_dir=os.path.join(config["OUTPUTS_DIR"], config["MODE"],
-                                                "eval_during_train", config["INFERENCE_SPLIT"], f"epoch_{epoch}"),
+                    outputs_dir=os.path.join(config["LOG_DIR"], "eval_during_train", config["INFERENCE_SPLIT"], f"epoch_{epoch}"),
                     only_detr=only_detr
                 )
                     

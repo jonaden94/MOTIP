@@ -117,6 +117,7 @@ INFERENCE_ONLY_DETR: False
 INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
 INFERENCE_ENSEMBLE: 0
 VIDEO_DIR: ~ # provide in case of video inference
+VISUALIZE_INFERENCE: True
 
 # Thresholds:
 ID_THRESH: 0.2
