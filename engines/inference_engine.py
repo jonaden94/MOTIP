@@ -4,8 +4,8 @@ import os
 import torch
 import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader
 from data.seq_dataset import SeqDataset
+from data.video_dataset import VideoDataset
 from utils.nested_tensor import tensor_list_to_nested_tensor
 from models.utils import get_model
 from utils.box_ops import box_cxcywh_to_xyxy
@@ -17,6 +17,7 @@ from utils.utils import is_distributed, distributed_rank, distributed_world_size
 from models import build_model
 from models.utils import load_checkpoint
 import cv2
+import time
 import numpy as np
 
 
@@ -27,6 +28,7 @@ def submit(config: dict, logger: Logger):
     :param logger:
     :return:
     """
+    start_time = time.time()
     model = build_model(config)
     load_checkpoint(model, path=config["INFERENCE_MODEL"])
 
@@ -48,10 +50,17 @@ def submit(config: dict, logger: Logger):
     logger.print(log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir)}/.")
     logger.save_log_to_file(
         log=f"Finish inference with checkpoint '{config['INFERENCE_MODEL']}' on the {config['INFERENCE_DATASET']} {config['INFERENCE_SPLIT']} set, outputs are written to '{os.path.join(submit_outputs_dir)}/.",
-        filename="log.txt",
-        mode="a"
     )
-
+    
+    # Print the total inference time
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    hours, remainder = divmod(elapsed_time, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    inference_time = f'{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}'
+    logger.save_log_to_file(
+        log=f"Total inference time: {inference_time}",
+    )
     return
 
 
@@ -60,72 +69,78 @@ def submit_one_epoch(config: dict, model: nn.Module,
                      dataset: str, data_split: str,
                      outputs_dir: str, only_detr: bool = False):
     model.eval()
-    all_seq_names = get_seq_names(data_root=config["DATA_ROOT"], dataset=dataset, data_split=data_split)
-    seq_names = [all_seq_names[_] for _ in range(len(all_seq_names))
-                 if _ % distributed_world_size() == distributed_rank()]
-
-    if len(seq_names) > 0:
-        for seq in seq_names:
-            submit_one_seq(
-                model=model,
-                seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, seq),
-                only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
-                outputs_dir=outputs_dir,
-                det_thresh=config["DET_THRESH"],
-                newborn_thresh=config["DET_THRESH"] if "NEWBORN_THRESH" not in config else config["NEWBORN_THRESH"],
-                area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
-                image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
-                inference_ensemble=config["INFERENCE_ENSEMBLE"] if "INFERENCE_ENSEMBLE" in config else 0,
-                draw_res=config["VISUALIZE_INFERENCE"]
-            )
-    else:   # fake submit, will not write any outputs.
+    
+    if config['MODE'] == 'inference':
+        inference_data_dir = os.path.join(config["DATA_ROOT"], dataset, data_split)
+        all_seq_names = sorted(os.listdir(inference_data_dir))
+        seq_names = [all_seq_names[_] for _ in range(len(all_seq_names))
+                    if _ % distributed_world_size() == distributed_rank()]
+        seq_paths = [os.path.join(inference_data_dir, _) for _ in seq_names]
+    elif config['MODE'] == 'video_inference':
+        for video in os.listdir(config["VIDEO_DIR"]):
+            assert video.endswith(('.mp4', '.mkv')), f"Make sure all files in {config['VIDEO_DIR']} are either .mp4 or .mkv"
+        all_seq_names = sorted(os.listdir(config["VIDEO_DIR"]))
+        seq_names = [all_seq_names[_] for _ in range(len(all_seq_names))
+                    if _ % distributed_world_size() == distributed_rank()]
+        seq_paths = [os.path.join(config["VIDEO_DIR"], _) for _ in seq_names]
+    else:
+        raise NotImplementedError(f"Do not support running mode '{config['MODE']}'.")
+        
+    for seq_path in seq_paths:
         submit_one_seq(
+            mode=config["MODE"],
             model=model,
-            seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, all_seq_names[0]),
+            seq_dir=seq_path,
             only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
             outputs_dir=outputs_dir,
             det_thresh=config["DET_THRESH"],
             newborn_thresh=config["DET_THRESH"] if "NEWBORN_THRESH" not in config else config["NEWBORN_THRESH"],
             area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
             image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
-            fake_submit=True,
             inference_ensemble=config["INFERENCE_ENSEMBLE"] if "INFERENCE_ENSEMBLE" in config else 0,
             draw_res=config["VISUALIZE_INFERENCE"]
         )
 
     if is_distributed():
         torch.distributed.barrier()
-
     return
 
 
 @torch.no_grad()
 def submit_one_seq(
+            mode: str,
             model: nn.Module, seq_dir: str, outputs_dir: str,
             only_detr: bool, max_temporal_length: int = 0,
             det_thresh: float = 0.5, newborn_thresh: float = 0.5, area_thresh: float = 100, id_thresh: float = 0.1,
             image_max_size: int = 1333,
-            fake_submit: bool = False,
             inference_ensemble: int = 0,
             draw_res: bool = False
         ):
+    # create output directories and paths
     tracker_dir = os.path.join(outputs_dir, "tracker")
     visualization_dir = os.path.join(outputs_dir, "visualization")
     os.makedirs(tracker_dir, exist_ok=True)
     os.makedirs(visualization_dir, exist_ok=True)
     
-    if draw_res:
-        video_w = None
-        colors = (np.random.rand(32, 3) * 255).astype(dtype=np.int32)
-        save_video_path = os.path.join(visualization_dir, f"{os.path.split(seq_dir)[-1]}.mp4")
-    
-    seq_dataset = SeqDataset(seq_dir=seq_dir, width=image_max_size)
-    seq_dataloader = DataLoader(seq_dataset, batch_size=1, num_workers=4, shuffle=False)
     seq_name = os.path.split(seq_dir)[-1]
+    if mode == "video_inference":
+        seq_name = seq_name[:-4]
+    
+    video_w = None
+    colors = (np.random.rand(32, 3) * 255).astype(dtype=np.int32)
+    save_video_path = os.path.join(visualization_dir, f"{seq_name}.mp4")
+    
+    # instantiate dataset and other objects for getting tracks
+    if mode == "inference":
+        dataset = SeqDataset(seq_dir=seq_dir, width=image_max_size)
+    elif mode == "video_inference":
+        dataset = VideoDataset(video_path=seq_dir, width=image_max_size)
+    else:
+        raise NotImplementedError(f"Do not support running mode '{mode}'.")
     device = model.device
     current_id = 0
     ids_to_results = {}
-    id_deque = OrderedSet()     # an ID deque for inference, the ID will be recycled if the dictionary is not enough.
+    id_deque = OrderedSet() # an ID deque for inference, the ID will be recycled if the dictionary is not enough.
 
     # Trajectory history:
     if only_detr:
@@ -133,14 +148,12 @@ def submit_one_seq(
     else:
         trajectory_history = deque(maxlen=max_temporal_length)
 
-    if fake_submit:
-        print(f"[Fake] Start >> Submit seq {seq_name.split('/')[-1]}, {len(seq_dataloader)} frames ......")
-    else:
-        print(f"Start >> Submit seq {seq_name.split('/')[-1]}, {len(seq_dataloader)} frames ......")
+    print(f"Start >> Submit seq {seq_name.split('/')[-1]}, {len(dataset)} frames ......")
 
-    for i, (image, ori_image) in enumerate(seq_dataloader):
-        ori_h, ori_w = ori_image.shape[1], ori_image.shape[2]
-        frame = tensor_list_to_nested_tensor([image[0]]).to(device)
+    for i in range(dataset.__len__()):
+        image, ori_image = dataset.__getitem__(i)
+        ori_h, ori_w = ori_image.shape[0], ori_image.shape[1]
+        frame = tensor_list_to_nested_tensor([image]).to(device)
         detr_outputs = model(frames=frame)
         detr_logits = detr_outputs["pred_logits"]
         detr_scores = torch.max(detr_logits, dim=-1).values.sigmoid()
@@ -211,44 +224,34 @@ def submit_one_seq(
             id_results = torch.tensor([current_id + _ for _ in range(len(box_results))], dtype=torch.long)
             current_id += len(id_results)
 
-        # Output to tracker file:
-        if fake_submit is False:
-            # Write the outputs to the tracker file:
-            result_file_path = os.path.join(tracker_dir, f"{seq_name}.txt")
-            with open(result_file_path, "a") as file:
-                assert len(id_results) == len(box_results), f"Boxes and IDs should in the same length, " \
-                                                            f"but get len(IDs)={len(id_results)} and " \
-                                                            f"len(Boxes)={len(box_results)}"
-                for obj_id, box in zip(id_results, box_results):
-                    obj_id = int(obj_id.item())
-                    x1, y1, x2, y2 = box.tolist()
-                    result_line = f"{i + 1}," \
-                                    f"{obj_id}," \
-                                    f"{x1},{y1},{x2 - x1},{y2 - y1},1,-1,-1,-1\n"
-                    file.write(result_line)
-                    if draw_res:
-                        color = tuple(colors[obj_id%32].tolist())
-                        cv2.rectangle(ori_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
-                        cv2.putText(ori_image, str(obj_id), (int(x1), int(y1)), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, color, 2, cv2.LINE_AA)
+        # Write the outputs to the tracker file:
+        result_file_path = os.path.join(tracker_dir, f"{seq_name}.txt")
+        with open(result_file_path, "a") as file:
+            assert len(id_results) == len(box_results), f"Boxes and IDs should in the same length, " \
+                                                        f"but get len(IDs)={len(id_results)} and " \
+                                                        f"len(Boxes)={len(box_results)}"
+            for obj_id, box in zip(id_results, box_results):
+                obj_id = int(obj_id.item())
+                x1, y1, x2, y2 = box.tolist()
+                result_line = f"{i + 1}," \
+                                f"{obj_id}," \
+                                f"{x1},{y1},{x2 - x1},{y2 - y1},1,-1,-1,-1\n"
+                file.write(result_line)
                 if draw_res:
-                    if video_w is None:
-                        # fourcc = cv2.VideoWriter_fourcc(*'avc1')
-                        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-                        size = (ori_w, ori_h)
-                        fps = 25
-                        video_w = cv2.VideoWriter(save_video_path, fourcc, fps, size)
-                        video_w.write(ori_image)
-                    else:
-                        video_w.write(ori_image)
+                    color = tuple(colors[obj_id%32].tolist())
+                    cv2.rectangle(ori_image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)
+                    cv2.putText(ori_image, str(obj_id), (int(x1), int(y1)), cv2.FONT_HERSHEY_COMPLEX_SMALL, 1.5, color, 2, cv2.LINE_AA)
+            if draw_res:
+                if video_w is None:
+                    # fourcc = cv2.VideoWriter_fourcc(*'avc1')
+                    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                    size = (ori_w, ori_h)
+                    fps = 25
+                    video_w = cv2.VideoWriter(save_video_path, fourcc, fps, size)
+                    video_w.write(ori_image)
+                else:
+                    video_w.write(ori_image)
     if video_w is not None:
         video_w.release()
-    if fake_submit:
-        print(f"[Fake] Finish >> Submit seq {seq_name.split('/')[-1]}. ")
-    else:
-        print(f"Finish >> Submit seq {seq_name.split('/')[-1]}. ")
+    print(f"Finish >> Submit seq {seq_name.split('/')[-1]}. ")
     return
-
-
-def get_seq_names(data_root: str, dataset: str, data_split: str):
-    dataset_dir = os.path.join(data_root, dataset, data_split)
-    return sorted(os.listdir(dataset_dir))

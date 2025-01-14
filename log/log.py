@@ -27,10 +27,6 @@ class Metrics:
     def __getitem__(self, item):
         return self.metrics[item]
 
-    # Not suitable for PyCharm Debug:
-    # def __getattr__(self, item):
-    #     return self.metrics[item]
-
     def __str__(self):
         s = str()
         for name, value in self.metrics.items():

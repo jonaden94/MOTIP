@@ -6,7 +6,6 @@ MODE: ~ # "train" or "inference" or "video_inference", for the main.py script.
 NUM_CPU_PER_GPU: # number of CPU per GPU
 NUM_WORKERS: 6
 DEVICE: cuda
-AVAILABLE_GPUS: 0,1,2,3,4,5,6,7
 
 # Git version:
 GIT_VERSION: 2.42.0 # you should input the git version here, if you are using wandb to log your experiments.
@@ -117,7 +116,7 @@ INFERENCE_ONLY_DETR: False
 INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
 INFERENCE_ENSEMBLE: 0
 VIDEO_DIR: ~ # provide in case of video inference
-VISUALIZE_INFERENCE: True
+VISUALIZE_INFERENCE: False
 
 # Thresholds:
 ID_THRESH: 0.2

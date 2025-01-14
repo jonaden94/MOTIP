@@ -301,8 +301,8 @@ class SeqDecoder(nn.Module):
             # Check if the trajectory augmentation process is legal.
             # Specifically, we need to ensure there is at least one object can be supervised,
             # or it may cause grad == None.
-            # TODO: This legal check is just a simple implementation, it may not be rigorous.
-            #       But it's enough for the current code.
+            # This legal check is just a simple implementation, it may not be rigorous.
+            # But it's enough for the current code.
             is_legal = (~(trajectory_masks | trajectory_remove_masks) & ~(unknown_masks | unknown_remove_masks)).any().item()
             if is_legal:
                 # We do not need to truly remove these tokens,

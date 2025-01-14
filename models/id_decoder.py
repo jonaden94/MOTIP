@@ -190,7 +190,6 @@ class IDDecoder(nn.Module):
                 _decoder_mask = related_mask
 
             # Fix key_padding_mask type in PyTorch 2.1:
-            # TODO: to support both PyTorch >= 2.0 and PyTorch <= 1.13
             key_padding_mask = _trajectory_masks_flatten[None, ...]
             # true to -inf, false to 0
             key_padding_mask = torch.masked_fill(key_padding_mask.to(torch.float), mask=key_padding_mask, value=float("-inf"))

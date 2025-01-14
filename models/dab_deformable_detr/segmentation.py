@@ -62,7 +62,7 @@ class DETRsegm(nn.Module):
                 {"pred_logits": a, "pred_boxes": b} for a, b in zip(outputs_class[:-1], outputs_coord[:-1])
             ]
 
-        # FIXME h_boxes takes the last one computed, keep this in mind
+        # OLDTODO h_boxes takes the last one computed, keep this in mind
         bbox_mask = self.bbox_attention(hs[-1], memory, mask=mask)
 
         seg_masks = self.mask_head(src_proj, bbox_mask, [features[2].tensors, features[1].tensors, features[0].tensors])

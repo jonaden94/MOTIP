@@ -38,10 +38,10 @@ srun python main.py \
     --use-wandb False \
     --config ./configs/r50_ddetr_dt_train.yaml \
     --exp-name r50_ddetr_dt_train \
-    --inference-model ./outputs/r50_ddetr_dt_train/checkpoint_12.pth \
+    --inference-model ./outputs/r50_ddetr_dt_train/checkpoint12.pth \
     --inference-dataset DanceTrack \
-    --inference-split val
-    # --inference-split test_video_infer
+    --inference-split val \
+    --visualize-inference True
 
 ####################################### inference with torch.distributed.run (only works on one node for me) 
 # python -m torch.distributed.run --nproc_per_node=4 main.py \

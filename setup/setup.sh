@@ -18,5 +18,5 @@ pip install opencv-python einops wandb pycocotools timm jupyter munch numpy==1.2
 cd models/ops/
 sh make.sh
 
-# # After compiled, you can use following script to test it:
+# After compiled, you can use following script to test it:
 # python test.py		# [Optional]

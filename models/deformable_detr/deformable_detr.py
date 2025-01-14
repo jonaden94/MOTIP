@@ -246,7 +246,7 @@ class SetCriterion(nn.Module):
         losses = {'loss_ce': loss_ce}
 
         if log:
-            # TODO this should probably be a separate loss, not hacked in this one here
+            # OLDTODO this should probably be a separate loss, not hacked in this one here
             losses['class_error'] = 100 - accuracy(src_logits[idx], target_classes_o)[0]
         return losses
 
@@ -296,7 +296,7 @@ class SetCriterion(nn.Module):
 
         src_masks = outputs["pred_masks"]
 
-        # TODO use valid to mask invalid areas due to padding in loss
+        # OLDTODO use valid to mask invalid areas due to padding in loss
         target_masks, valid = tensor_list_to_nested_tensor([t["masks"] for t in targets]).decompose()
         target_masks = target_masks.to(src_masks)
 
@@ -476,7 +476,7 @@ def build(args):
     if args.masks:
         weight_dict["loss_mask"] = args.mask_loss_coef
         weight_dict["loss_dice"] = args.dice_loss_coef
-    # TODO this is a hack
+    # OLDTODO this is a hack
     if args.aux_loss:
         aux_weight_dict = {}
         for i in range(args.dec_layers - 1):

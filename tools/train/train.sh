@@ -44,8 +44,9 @@ echo "MASTER_ADDR="$MASTER_ADDR
 ################# regular training
 # srun python main.py --mode train --config ./configs/r50_ddetr_dt_trainval_joint_ch.yaml --exp-name r50_ddetr_dt_trainval_joint_ch_try
 # srun python main.py --mode train --config ./configs/r50_ddetr_dt_train.yaml --exp-name r50_ddetr_dt_train_with_data_on_grete
-srun python main.py --mode train --config ./configs/r50_ddetr_dt_train.yaml --exp-name r50_ddetr_dt_train_test_eval_time
+# srun python main.py --mode train --config ./configs/r50_ddetr_dt_train.yaml --exp-name r50_ddetr_dt_train_test_eval_time
 # srun python main.py --mode train --config ./configs/r50_ddetr_dt_trainval_joint_ch.yaml --exp-name r50_ddetr_dt_trainval_joint_ch
+srun python main.py --mode train --config ./configs/r50_ddetr_dt_train.yaml --exp-name r50_ddetr_dt_train_2epoch --epochs 2
 
 ####################################### training with torch.distributed.run (only works on one node for me)
 # python -m torch.distributed.run --nproc_per_node=4 main.py \

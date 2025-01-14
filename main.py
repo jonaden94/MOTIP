@@ -2,12 +2,12 @@
 import os
 import torch.distributed
 from utils.utils import (yaml_to_dict, is_main_process, set_seed,
-                         init_distributed_mode, parse_option)
+                         init_distributed_mode, parse_option, munch_to_dict)
 from log.logger import Logger
 from configs.utils import update_config, load_super_config
 from engines.train_engine import train
 from engines.inference_engine import submit
-from engines.inference_video_engine import video_inference
+import pprint
 
 
 def main(config: dict):
@@ -17,9 +17,6 @@ def main(config: dict):
     Args:
         config: Model configs.
     """
-    # defining available GPUs
-    os.environ["CUDA_VISIBLE_DEVICES"] = config["AVAILABLE_GPUS"]   # setting available gpus, like: "0,1,2,3"
-    
     # init distributed mode depending on environment variables
     init_distributed_mode(config)
 
@@ -45,8 +42,7 @@ def main(config: dict):
     if is_main_process():
         logger.print_config(config=config, prompt="Runtime Configs: ")
         logger.save_config(config=config, filename="config.yaml")
-        # logger.show(log=config, prompt="Main configs: ")
-        # logger.write(config, "config.yaml")
+        logger.save_log_to_file(pprint.pformat(munch_to_dict(config)) + '\n\n')
 
     # set seed
     set_seed(config["SEED"])
@@ -56,10 +52,10 @@ def main(config: dict):
 
     if config["MODE"] == "train":
         train(config=config, logger=logger)
-    elif config["MODE"] == "inference":
+    elif config["MODE"] == "inference" or config["MODE"] == "video_inference":
         submit(config=config, logger=logger)
-    elif config["MODE"] == "video_inference":
-        video_inference(config=config, logger=logger)
+    else:
+        raise NotImplementedError(f"Do not support running mode '{config['MODE']}'.")
     return
 
 

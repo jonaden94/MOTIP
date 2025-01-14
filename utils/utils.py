@@ -41,7 +41,6 @@ def parse_option():
     parser.add_argument("--detr-num-queries", type=int)
     parser.add_argument("--pretrain", type=str) # full model pretrain
     parser.add_argument("--detr-pretrain", type=str)    # DETR pretrain
-    # parser.add_argument("--num-seq-decoder-layers", type=int)
     parser.add_argument("--seq-hidden-dim", type=int)
     parser.add_argument("--seq-dim-feedforward", type=int)
     parser.add_argument("--id-decoder-layers", type=int)
@@ -99,9 +98,6 @@ def parse_option():
     parser.add_argument("--inference-dataset", type=str)
     parser.add_argument("--inference-max-size", type=int)
 
-    # Distributed.
-    parser.add_argument("--use-distributed", type=str, help="Whether use distributed mode.")
-
     # Hyperparams.
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--scheduler-milestones", type=int, nargs="*")
@@ -116,8 +112,8 @@ def parse_option():
     parser.add_argument("--detr-cls-loss-coef", type=float)
     
     # video infer
-    parser.add_argument("--video-dir", type=str, default='')
-    parser.add_argument("--visualize-inference", type=str, default='')
+    parser.add_argument("--video-dir", type=str)
+    parser.add_argument("--visualize-inference", type=str)
 
     return parser.parse_args()
 
@@ -163,7 +159,6 @@ def distributed_world_size():
         return torch.distributed.get_world_size()
     else:
         return 1
-        # raise RuntimeError("'world size' is not available when distributed mode is not started.")
 
 
 def init_distributed_mode(args):
@@ -235,6 +230,17 @@ def yaml_to_dict(path: str):
     """
     with open(path) as f:
         return Munch.fromDict(yaml.load(f.read(), yaml.FullLoader))
+    
+    
+def munch_to_dict(obj):
+    if isinstance(obj, Munch):
+        return {key: munch_to_dict(value) for key, value in obj.items()}
+    elif isinstance(obj, list):
+        return [munch_to_dict(item) for item in obj]
+    elif isinstance(obj, tuple):
+        return tuple(munch_to_dict(item) for item in obj)
+    else:
+        return obj
 
 
 def labels_to_one_hot(labels: torch.Tensor, class_num: int, device="cpu"):
@@ -291,24 +297,9 @@ def inverse_sigmoid(x, eps=1e-5):
 
 
 def interpolate(input, size=None, scale_factor=None, mode="nearest", align_corners=None):
-    # type: (Tensor, Optional[List[int]], Optional[float], str, Optional[bool]) -> Tensor
     """
     Equivalent to nn.functional.interpolate, but with support for empty batch sizes.
-    This will eventually be supported natively by PyTorch, and this
-    class can go away.
     """
-    # if float(torchvision.__version__[:3]) < 0.7:
-    #     if input.numel() > 0:
-    #         return torch.nn.functional.interpolate(
-    #             input, size, scale_factor, mode, align_corners
-    #         )
-    #
-    #     output_shape = _output_size(2, input, size, scale_factor)
-    #     output_shape = list(input.shape[:-2]) + list(output_shape)
-    #     if float(torchvision.__version__[:3]) < 0.5:
-    #         return _NewEmptyTensorOp.apply(input, output_shape)
-    #     return _new_empty_tensor(input, output_shape)
-    # else:
     return torchvision.ops.misc.interpolate(input, size, scale_factor, mode, align_corners)
 
 

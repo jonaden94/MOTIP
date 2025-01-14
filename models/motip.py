@@ -94,7 +94,6 @@ class MOTIP(nn.Module):
             detr_args.num_patterns = 0
             detr_args.random_refpoints_xy = False
             self.detr, self.detr_criterion, _ = build_dab_deformable_detr(detr_args)
-            # TODO: We will upload the DAB-DETR code soon.
         else:
             raise RuntimeError(f"Unknown DETR framework: {self.detr_framework}.")
         # ID Label Criterion:

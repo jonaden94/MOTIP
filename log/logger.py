@@ -3,47 +3,12 @@
 # @Description  : Logger will log information.
 import os
 import json
-import argparse
 import yaml
 import wandb
 import time
-# from tqdm import tqdm
-# from typing import Any
 from torch.utils import tensorboard as tb
-
 from log.log import Metrics
 from utils.utils import is_main_process
-
-
-# class ProgressLogger:
-#     def __init__(self, total_len: int, prompt: str = None, only_main: bool = True):
-#         """
-#         初始化一个进度日志。
-
-#         Args:
-#             total_len:
-#             prompt:
-#             only_main: only for the main process.
-#         """
-#         self.only_main = only_main
-#         self.is_activate = (self.only_main and is_main_process()) or (self.only_main is False)
-
-#         if self.is_activate:
-#             self.total_len = total_len
-#             self.tqdm = tqdm(total=total_len)
-#             self.prompt = prompt
-#         else:
-#             self.total_len = None
-#             self.tqdm = None
-#             self.prompt = None
-
-#     def update(self, step_len: int, **kwargs: Any):
-#         if (self.only_main and is_main_process()) or (self.only_main is False):
-#             self.tqdm.set_description(self.prompt)
-#             self.tqdm.set_postfix(**kwargs)
-#             self.tqdm.update(step_len)
-#         else:
-#             return
 
 
 class Logger:
@@ -199,17 +164,6 @@ class Logger:
             f.write("\n")
         return
 
-    # def tb_add_scalars(self, main_tag: str, tag_scalar_dict: dict, global_step: int):
-    #     if (self.only_main and is_main_process()) or (self.only_main is False):
-    #         self.tb_logger.add_scalars(
-    #             main_tag=main_tag,
-    #             tag_scalar_dict=tag_scalar_dict,
-    #             global_step=global_step
-    #         )
-    #     else:
-    #         pass
-    #     return
-
     def tensorboard_add_scalar(self, name: str, value: float, global_step: int):
         if self.is_activate:
             if self.use_tensorboard:
@@ -229,10 +183,6 @@ class Logger:
             if self.use_wandb:
                 wandb.log(data=data, step=step)
         return
-    # def name_value_to_statistic(self, name: str, value: float, global_step: int):
-    #     if self.use_tensorboard:
-    #         self.tensorboard_add_scalar(name=name, value=value, global_step=global_step)
-    #     if self.use_wandb:
 
     def save_metrics_to_tensorboard(self, metrics: Metrics, statistic: str = "average",
                                     global_step: int = 0, prefix: None | str = None):
@@ -257,20 +207,3 @@ class Logger:
             metric_value = value.__getattribute__(statistic)
             self.wandb_log(data={metric_name: metric_value}, step=global_step)
         pass
-
-
-# def parser_to_dict(log: argparse.ArgumentParser) -> dict:
-#     """
-#     Transform options to a dict.
-
-#     Args:
-#         log: The options.
-
-#     Returns:
-#         Options dict.
-#     """
-#     opts_dict = dict()
-#     for k, v in vars(log).items():
-#         if v:
-#             opts_dict[k] = v
-#     return opts_dict

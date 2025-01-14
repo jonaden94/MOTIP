@@ -10,11 +10,11 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 # from models import build_model
 # from models.utils import load_checkpoint
-from log.logger import Logger
+# from log.logger import Logger
 from log.log import Metrics
-from utils.utils import is_distributed, distributed_rank, yaml_to_dict, \
-    distributed_world_size, is_main_process
-from engines.inference_engine import submit_one_seq, get_seq_names
+from utils.utils import (is_distributed, distributed_rank,
+                         distributed_world_size, is_main_process)
+from engines.inference_engine import submit_one_seq
 
 
 # def evaluate(config: dict, logger: Logger):
@@ -67,34 +67,22 @@ def evaluate_one_epoch(config: dict, model: nn.Module, dataset: str, data_split:
     model.eval()
     metrics = Metrics()
 
-    all_seq_names = get_seq_names(data_root=config["DATA_ROOT"], dataset=dataset, data_split=data_split)
+    inference_data_dir = os.path.join(config["DATA_ROOT"], dataset, data_split)
+    all_seq_names = sorted(os.listdir(inference_data_dir))
     seq_names = [all_seq_names[_] for _ in range(len(all_seq_names))
                  if _ % distributed_world_size() == distributed_rank()]
 
-    if len(seq_names) > 0:
-        for seq in seq_names:
-            submit_one_seq(
-                model=model,
-                seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, seq),
-                only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
-                outputs_dir=outputs_dir,
-                det_thresh=config["DET_THRESH"],
-                newborn_thresh=config["DET_THRESH"] if "NEWBORN_THRESH" not in config else config["NEWBORN_THRESH"],
-                area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
-                image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
-                inference_ensemble=config["INFERENCE_ENSEMBLE"] if "INFERENCE_ENSEMBLE" in config else 0,
-            )
-    else:
+    for seq in seq_names:
         submit_one_seq(
+            mode="inference",
             model=model,
-            seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, all_seq_names[0]),
+            seq_dir=os.path.join(config["DATA_ROOT"], dataset, data_split, seq),
             only_detr=only_detr, max_temporal_length=config["MAX_TEMPORAL_LENGTH"],
             outputs_dir=outputs_dir,
             det_thresh=config["DET_THRESH"],
             newborn_thresh=config["DET_THRESH"] if "NEWBORN_THRESH" not in config else config["NEWBORN_THRESH"],
             area_thresh=config["AREA_THRESH"], id_thresh=config["ID_THRESH"],
             image_max_size=config["INFERENCE_MAX_SIZE"] if "INFERENCE_MAX_SIZE" in config else 1333,
-            fake_submit=True,
             inference_ensemble=config["INFERENCE_ENSEMBLE"] if "INFERENCE_ENSEMBLE" in config else 0,
         )
 
@@ -128,7 +116,6 @@ def evaluate_one_epoch(config: dict, model: nn.Module, dataset: str, data_split:
     metrics["AssRe"].update(eval_metrics_dict["AssRe"])
     metrics["MOTA"].update(eval_metrics_dict["MOTA"])
     metrics["IDF1"].update(eval_metrics_dict["IDF1"])
-
     return metrics
 
 

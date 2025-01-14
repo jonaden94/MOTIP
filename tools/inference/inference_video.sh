@@ -36,11 +36,11 @@ echo "MASTER_ADDR="$MASTER_ADDR
 srun python main.py \
     --mode video_inference \
     --use-wandb False \
-    --config ./configs/r50_ddetr_dt_train.yaml \
+    --config configs/r50_ddetr_dt_train.yaml \
     --exp-name r50_ddetr_dt_train \
-    --inference-model ./outputs/r50_ddetr_dt_train/checkpoint_12.pth \
-    --video-dir /user/henrich1/u12041/scratch/scratch_rzg_project/tracking_data/datasets/DanceTrackVideo/mkv/val
-    # --video-dir /user/henrich1/u12041/scratch/scratch_rzg_project/tracking_data/datasets/DanceTrack/data/test_video_infer_video
+    --inference-model outputs/r50_ddetr_dt_train/checkpoint12.pth \
+    --video-dir /user/henrich1/u12041/scratch/scratch_rzg_project/tracking_data/datasets/DanceTrackVideo/mkv/val \
+    --visualize-inference True
     # --video-dir /user/henrich1/u12041/scratch/scratch_rzg_project/tracking_data/datasets/DanceTrackMP4/val
 
 ####################################### inference with torch.distributed.run (only works on one node for me) 
