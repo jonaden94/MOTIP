@@ -1,1 +1,0 @@
-these three configs correspond to the three deformable detr entries on papers with code

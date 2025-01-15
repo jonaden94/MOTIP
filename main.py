@@ -60,13 +60,8 @@ def main(config: dict):
 
 
 if __name__ == '__main__':
-    opt = parse_option() # runtime options, a subset of .yaml config file (dict).
-    cfg = yaml_to_dict(opt.config) # configs from .yaml file, path is set by runtime options.
-
-    if opt.super_config_path is not None:
-        cfg = load_super_config(cfg, opt.super_config_path)
-    else:
-        cfg = load_super_config(cfg, cfg["SUPER_CONFIG_PATH"])
-
-    # Then, update configs by runtime options, using the different runtime setting.
-    main(config=update_config(config=cfg, option=opt))
+    opt = parse_option()
+    cfg = yaml_to_dict(opt.config)
+    cfg = load_super_config(cfg, cfg["SUPER_CONFIG_PATH"])
+    cfg = update_config(config=cfg, option=opt)
+    main(config=cfg)

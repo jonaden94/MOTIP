@@ -36,9 +36,9 @@ echo "MASTER_ADDR="$MASTER_ADDR
 srun python main.py \
     --mode inference \
     --use-wandb False \
-    --config ./configs/r50_ddetr_dt_train.yaml \
-    --exp-name r50_ddetr_dt_train \
-    --inference-model ./outputs/r50_ddetr_dt_train/checkpoint12.pth \
+    --config ./configs/dt_train.yaml \
+    --exp-name dt_train \
+    --inference-model ./outputs/dt_train/checkpoint12.pth \
     --inference-dataset DanceTrack \
     --inference-split val \
     --visualize-inference True
@@ -47,7 +47,7 @@ srun python main.py \
 # python -m torch.distributed.run --nproc_per_node=4 main.py \
 #                                 --mode inference \
 #                                 --use-wandb False \
-#                                 --config ./configs/r50_ddetr_dt_train.yaml \
+#                                 --config ./configs/dt_train.yaml \
 #                                 --exp-name r50_ddetr_dt_train \
 #                                 --inference-model ./outputs/r50_ddetr_dt_train/checkpoint_12.pth \
 #                                 --inference-dataset DanceTrack \

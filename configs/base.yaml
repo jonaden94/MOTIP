@@ -1,24 +1,9 @@
 SUPER_CONFIG_PATH: ~
-CONFIG: ~
-MODE: ~ # "train" or "inference" or "video_inference", for the main.py script.
 
 # System config, like CPU/GPU
-NUM_CPU_PER_GPU: # number of CPU per GPU
+NUM_CPU_PER_GPU: ~ # number of CPU per GPU; doesnt have to be set explicitly though
 NUM_WORKERS: 6
 DEVICE: cuda
-
-# Git version:
-GIT_VERSION: 2.42.0 # you should input the git version here, if you are using wandb to log your experiments.
-
-# complete pretrained model (as opposed to DETR_PRETRAIN)
-PRETRAIN: ~
-
-# Datasets:
-DATASETS: [DanceTrack] # for joint training, there may be multiple datasets, like: [crowdhuman, MOT17]
-DATASET_SPLITS: [train] # and corresponding splits, like: [train, val]
-DATASET_SEQMAP_NAMES: [~]
-DATASET_TYPES: ['track']
-DATA_ROOT: ./datasets/data # datasets root
 
 # Sampling settings: (all are lists of same length that determine how frames are sampled for training)
 SAMPLE_STEPS: [0] # list of epoch numbers (in descending order). the corresponding values from SAMPLE_LENGTHS, SAMPLE_MODES and SAMPLE_INTERVALS are then taken when specific epoch is reached
@@ -34,7 +19,7 @@ AUG_RANDOM_CROP_MIN: 384
 AUG_RANDOM_CROP_MAX: 600
 AUG_OVERFLOW_BBOX: False
 AUG_REVERSE_CLIP: 0.0
-AUG_RANDOM_SHIFT_MAX_RATIO: 0.06    # Only for static images
+AUG_RANDOM_SHIFT_MAX_RATIO: 0.06 # Only for static images
 
 # Model settings:
 NUM_ID_VOCABULARY: 50
@@ -51,7 +36,7 @@ SEQ_NUM_HEADS: 8
 BACKBONE: resnet50
 DILATION: False
 
-# About DETR-Framework
+# DETR-Framework:
 DETR_NUM_QUERIES: 300
 DETR_NUM_FEATURE_LEVELS: 4
 DETR_AUX_LOSS: True
@@ -71,13 +56,10 @@ DETR_CLS_LOSS_COEF: 2.0
 DETR_BBOX_LOSS_COEF: 5.0
 DETR_GIOU_LOSS_COEF: 2.0
 DETR_FOCAL_ALPHA: 0.25
-DETR_PRETRAIN: ./datasets/pretrained/detr/r50_deformable_detr_coco_dancetrack.pth
 DETR_FRAMEWORK: Deformable-DETR
 
 # Training Setting:
-TRAIN_STAGE: joint
 SEED: 42
-USE_DISTRIBUTED: False
 DETR_NUM_TRAIN_FRAMES: 4
 
 # Below two parameters are for memory optimized DETR training:
@@ -108,30 +90,13 @@ RESUME_OPTIMIZER: True
 RESUME_SCHEDULER: True
 RESUME_STATES: True
 
-# Inference:
-INFERENCE_MODEL:
-INFERENCE_DATASET: DanceTrack
-INFERENCE_SPLIT: val
-INFERENCE_ONLY_DETR: False
-INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
-INFERENCE_ENSEMBLE: 0
-VIDEO_DIR: ~ # provide in case of video inference
-VISUALIZE_INFERENCE: False
-
-# Thresholds:
-ID_THRESH: 0.2
-DET_THRESH: 0.3 # only consider detections whose confidence exceeds this threshold
-NEWBORN_THRESH: 0.6 # only consider detections whose confidence exceeds this threshold for newborn objects (stricter than DET_THRESH)
-AREA_THRESH: 100 # only consider detections whose area exceeds this threshold
-
 # Outputs:
-OUTPUTS_DIR:
 OUTPUTS_PER_STEP: 100
 SAVE_CHECKPOINT_PER_EPOCH: 1
 USE_TENSORBOARD: False
 USE_WANDB: True
+GIT_VERSION: 2.42.0 # you should input the git version here, if you are using wandb to log your experiments.
 PROJECT_NAME: MOTIP
-EXP_NAME: ~
 EXP_GROUP: ~
 EXP_OWNER: ~
 

@@ -1,0 +1,36 @@
+SUPER_CONFIG_PATH: ./configs/base.yaml
+MODE: ~ # "train" or "inference" or "video_inference"
+EXP_NAME: ~
+
+# training data
+DATA_ROOT: ./datasets/data
+DATASETS: [DanceTrack] # for joint training, there may be multiple datasets, like: [crowdhuman, MOT17]
+DATASET_SPLITS: [train] # and corresponding splits, like: [train, val]
+DATASET_SEQMAP_NAMES: [~]
+DATASET_TYPES: ['track']
+# DATASET_WEIGHTS: [2, 2, 1]
+
+# pretrained weights:
+DETR_PRETRAIN: ./datasets/pretrained/detr/r50_deformable_detr_coco_dancetrack.pth
+PRETRAIN: ~
+
+# Training:
+TRAIN_STAGE: joint
+EPOCHS: 14
+SCHEDULER_MILESTONES: [8, 12]
+
+# Inference:
+INFERENCE_DATASET: DanceTrack
+INFERENCE_SPLIT: val
+INFERENCE_ONLY_DETR: False
+INFERENCE_MAX_SIZE: 1333 # width of image after resizing; maybe only resized if image width originally is bigger
+INFERENCE_ENSEMBLE: 0
+VISUALIZE_INFERENCE: False
+ID_THRESH: 0.2
+DET_THRESH: 0.3 # only consider detections whose confidence exceeds this threshold
+NEWBORN_THRESH: 0.6 # only consider detections whose confidence exceeds this threshold for newborn objects (stricter than DET_THRESH)
+AREA_THRESH: 100 # only consider detections whose area exceeds this threshold
+
+# Additional video inference settings:
+INFERENCE_MODEL: ~
+VIDEO_DIR: ~ # provide in case of video inference
