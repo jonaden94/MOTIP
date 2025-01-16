@@ -21,8 +21,8 @@ echo "Activating conda..."
 CONDA_BASE=$(conda info --base)
 echo $CONDA_BASE
 source $CONDA_BASE/etc/profile.d/conda.sh
-conda activate motip
-cd ~/repos/MOTIP
+conda activate tracking
+cd ~/repos/PigTrack/tracking/motip
 
 ####################################### srun
 # These environment variables are required for initializing distributed training in pytorch  
@@ -39,14 +39,14 @@ echo "MASTER_ADDR="$MASTER_ADDR
 # NCCL_DEBUG=INFO 
 
 ################# debug
-# srun python main.py --mode train --config ./configs/dt_train.yaml --exp-name debug --use-wandb False --outputs-per-step 10 --pretrain /user/henrich1/u12041/repos/MOTIP/datasets/pretrained/full_model/r50_deformable_detr_motip_dancetrack_trainval_joint_ch.pth
+# srun python main.py --mode train --config ./configs/dt_train.yaml --exp-name debug --use-wandb False --outputs-per-step 10 --pretrain /user/henrich1/u12041/repos/PigTrack/tracking/motip/datasets/pretrained/full_model/r50_deformable_detr_motip_dancetrack_trainval_joint_ch.pth
 # --use-wandb True --outputs-per-step 10
 ################# regular training
 # srun python main.py --mode train --config ./configs/dt_trainval_ch_all.yaml --exp-name r50_ddetr_dt_trainval_joint_ch_try
 # srun python main.py --mode train --config ./configs/dt_train.yaml --exp-name r50_ddetr_dt_train_with_data_on_grete
 # srun python main.py --mode train --config ./configs/dt_train.yaml --exp-name r50_ddetr_dt_train_test_eval_time
 # srun python main.py --mode train --config ./configs/dt_trainval_ch_all.yaml --exp-name r50_ddetr_dt_trainval_joint_ch
-srun python main.py --mode train --config ./configs/dt_train.yaml --exp-name dt_train_2epoch_20250115 --epochs 2
+srun python main.py --mode train --config ./configs/dt_train.yaml --exp-name dt_train_2epoch_20250116 --epochs 2
 
 ####################################### training with torch.distributed.run (only works on one node for me)
 # python -m torch.distributed.run --nproc_per_node=4 main.py \

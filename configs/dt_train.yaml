@@ -3,7 +3,7 @@ MODE: ~ # "train" or "inference" or "video_inference"
 EXP_NAME: ~
 
 # training data
-DATA_ROOT: ./datasets/data
+DATA_ROOT: ../data/datasets
 DATASETS: [DanceTrack] # for joint training, there may be multiple datasets, like: [crowdhuman, MOT17]
 DATASET_SPLITS: [train] # and corresponding splits, like: [train, val]
 DATASET_SEQMAP_NAMES: [~]
@@ -11,7 +11,7 @@ DATASET_TYPES: ['track']
 # DATASET_WEIGHTS: [2, 2, 1]
 
 # pretrained weights:
-DETR_PRETRAIN: ./datasets/pretrained/detr/r50_deformable_detr_coco_dancetrack.pth
+DETR_PRETRAIN: ../data/pretrained/motip/detr/r50_deformable_detr_coco_dancetrack.pth
 PRETRAIN: ~
 
 # Training:

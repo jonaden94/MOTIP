@@ -3,7 +3,7 @@ MODE: ~ # "train" or "inference" or "video_inference"
 EXP_NAME: ~
 
 # training data
-DATA_ROOT: ./datasets/data
+DATA_ROOT: ../data/datasets
 DATASETS: [PigTrack, PigDetect, PigDetect]
 DATASET_SPLITS: [train, dev, test]
 DATASET_SEQMAP_NAMES: [~, ~, ~]
@@ -11,7 +11,7 @@ DATASET_TYPES: ['track', 'det', 'det']
 # DATASET_WEIGHTS: [2, 2, 1]
 
 # pretrained weights:
-DETR_PRETRAIN: ./datasets/pretrained/detr/r50_deformable_detr_coco.pth # Pretrain from COCO checkpoint
+DETR_PRETRAIN: ../data/pretrained/motip/detr/r50_deformable_detr_coco.pth # Pretrain from COCO checkpoint
 PRETRAIN: ~
 
 # Training:

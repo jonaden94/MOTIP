@@ -20,8 +20,8 @@ echo "Activating conda..."
 CONDA_BASE=$(conda info --base)
 echo $CONDA_BASE
 source $CONDA_BASE/etc/profile.d/conda.sh
-conda activate motip
-cd ~/repos/MOTIP
+conda activate tracking
+cd ~/repos/PigTrack/tracking/motip
 
 ####################################### srun
 # These environment variables are required for initializing distributed training in pytorch  
